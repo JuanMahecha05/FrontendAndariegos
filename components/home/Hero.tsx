@@ -27,7 +27,7 @@ export function Hero() {
             Tours personalizados para vivir la auténtica experiencia bogotana, desde sus calles históricas hasta sus paisajes naturales.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fadeIn animation-delay-400">
-            <Button asChild size="lg" className="text-lg px-8 py-6 bg-yellow-500 hover:bg-yellow-600 text-gray-900">
+            <Button asChild size="lg" className="text-lg px-8 py-6 border-2 border-yellow-600 bg-yellow-500 hover:bg-yellow-600 text-gray-900">
               <Link href="/tours">
                 Reserva tu tour
                 <ChevronRight className="ml-2 h-5 w-5" />

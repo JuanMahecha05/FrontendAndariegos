@@ -38,7 +38,7 @@ export function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled || isMenuOpen
-          ? 'bg-white dark:bg-gray-900 shadow-md'
+          ? 'bg-gray-400 dark:bg-gray-900 shadow-md'
           : 'bg-transparent'
       }`}
     >
