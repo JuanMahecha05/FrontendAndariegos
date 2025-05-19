@@ -9,7 +9,7 @@ export function Hero() {
       <div 
         className="absolute inset-0 z-0" 
         style={{
-          backgroundImage: 'url(https://images.pexels.com/photos/3588475/pexels-photo-3588475.jpeg)',
+          backgroundImage: "url('/images/bogotabanner.jpg')",
           backgroundPosition: 'center',
           backgroundSize: 'cover',
           backgroundRepeat: 'no-repeat',
@@ -20,11 +20,11 @@ export function Hero() {
       {/* Content */}
       <div className="container mx-auto px-4 z-10 text-center">
         <div className="max-w-3xl mx-auto mb-20">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-6 leading-tight animate-fadeIn drop-shadow-lg">
-            Descubre Bogotá con los mejores guías locales
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-fadeIn drop-shadow-lg">
+            Descubre Bogotá, a tu ritmo, en las actividades que quieras
           </h1>
-          <p className="text-xl md:text-2xl text-black mb-8 animate-fadeIn animation-delay-200 drop-shadow-lg">
-            Tours personalizados para vivir la auténtica experiencia bogotana, desde sus calles históricas hasta sus paisajes naturales.
+          <p className="text-xl md:text-2xl text-white mb-8 animate-fadeIn animation-delay-200 drop-shadow-lg">
+            Personaliza tus tours para vivir la auténtica experiencia bogotana, decidiendo experimentar desde sus calles históricas hasta sus paisajes naturales.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fadeIn animation-delay-400">
             <Button asChild size="lg" className="text-lg px-8 py-6 border-2 border-yellow-600 bg-yellow-500 hover:bg-yellow-600 text-gray-900">
@@ -44,9 +44,9 @@ export function Hero() {
       
       {/* Scroll indicator */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center animate-bounce transform">
-        <span className="text-black text-sm mb-2 drop-shadow-lg">Desplázate</span>
+        <span className="text-white text-sm mb-2 drop-shadow-lg">Desplázate</span>
         <svg 
-          className="w-6 h-6 text-black drop-shadow-lg" 
+          className="w-6 h-6 text-white drop-shadow-lg" 
           fill="none" 
           strokeWidth="2" 
           viewBox="0 0 24 24" 

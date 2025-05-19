@@ -83,28 +83,46 @@ export default function AboutPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Nuestro Equipo</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Somos un equipo de 7 apasionados profesionales dedicados a crear experiencias únicas y memorables para nuestros viajeros
+              Somos un equipo de 6 apasionados estudiantes dedicados a crear una plataforma moderna, fácil de usar y de calidad
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
-                name: 'Carlos Rodríguez',
-                role: 'Fundador y Director',
-                image: 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg',
+                name: 'Daniel Tobar',
+                role: 'Frontend',
+                image: '/images/dan_cropped.png',
                 description: 'Visionario del turismo sostenible con más de 10 años de experiencia'
               },
               {
-                name: 'Ana Martínez',
-                role: 'Directora de Experiencias',
-                image: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg',
+                name: 'Simón Ramos',
+                role: 'Backend',
+                image: '/images/simon_foto.png',
                 description: 'Experta en diseño de experiencias únicas y memorables'
               },
               {
-                name: 'Diego López',
-                role: 'Líder de Desarrollo',
-                image: 'https://images.pexels.com/photos/614810/pexels-photo-614810.jpeg',
+                name: 'Miguel Parrado',
+                role: 'Backend',
+                image: '/images/miguel_foto.png',
                 description: 'Ingeniero apasionado por la innovación tecnológica'
+              },
+              {
+                name: 'Juan Jaimes',
+                role: 'Backend',
+                image: '/images/jaimes_foto.png',
+                description: 'Experta en diseño de experiencias únicas y memorables'
+              },
+              {
+                name: 'Juan Mahecha',
+                role: 'Frontend',
+                image: '/images/picada.jpg',
+                description: 'Experta en diseño de experiencias únicas y memorables'
+              },
+              {
+                name: 'Jose Alvarado',
+                role: 'Frontend',
+                image: '/images/picada.jpg',
+                description: 'Experta en diseño de experiencias únicas y memorables'
               }
             ].map((member, index) => (
               <div key={index} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
