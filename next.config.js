@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
   optimizeFonts: {
-    fontDisplay: 'swap'
+    fontDisplay: "swap",
   },
   webpack: (config, { dev, isServer }) => {
     if (dev && isServer) {
