@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Menu, X, MapPin } from 'lucide-react'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -38,14 +39,14 @@ export function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled || isMenuOpen
-          ? 'bg-gray-400 dark:bg-gray-900 shadow-md'
-          : 'bg-transparent'
+          ? 'bg-white/95 dark:bg-gray-950 backdrop-blur-sm shadow-md'
+          : 'bg-white dark:bg-gray-950'
       }`}
     >
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link 
           href="/" 
-          className="flex items-center space-x-2 text-2xl font-bold text-primary"
+          className="flex items-center space-x-2 text-2xl font-bold text-primary dark:text-primary"
           onClick={closeMenu}
         >
           <MapPin className="h-8 w-8" />
@@ -62,7 +63,7 @@ export function Navbar() {
                   className={`transition-colors hover:text-primary ${
                     pathname === link.href
                       ? 'text-primary font-medium'
-                      : 'text-foreground'
+                      : 'text-foreground dark:text-gray-200'
                   }`}
                 >
                   {link.label}
@@ -78,6 +79,9 @@ export function Navbar() {
             <Button asChild>
               <Link href="/register">Registrarse</Link>
             </Button>
+            <div className="ml-4 border-l pl-4 dark:border-gray-700">
+              <ThemeToggle />
+            </div>
           </div>
         </nav>
 
@@ -124,6 +128,9 @@ export function Navbar() {
               <Button asChild className="w-full">
                 <Link href="/register" onClick={closeMenu}>Registrarse</Link>
               </Button>
+              <div className="flex justify-center pt-4 border-t dark:border-gray-700">
+                <ThemeToggle />
+              </div>
             </div>
           </div>
         </div>

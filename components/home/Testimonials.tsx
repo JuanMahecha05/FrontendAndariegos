@@ -39,11 +39,11 @@ export function Testimonials() {
   ]
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-muted">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Lo que dicen nuestros viajeros</h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Lo que dicen nuestros viajeros</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Experiencias reales de quienes han descubierto Bogotá con nosotros
           </p>
         </div>
@@ -59,14 +59,14 @@ export function Testimonials() {
                       className={`h-5 w-5 ${
                         i < testimonial.rating 
                           ? 'fill-yellow-400 text-yellow-400' 
-                          : 'fill-gray-200 text-gray-200'
+                          : 'fill-muted text-muted'
                       }`}
                     />
                   ))}
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 italic">&ldquo;{testimonial.text}&rdquo;</p>
+                <p className="text-muted-foreground italic">&ldquo;{testimonial.text}&rdquo;</p>
               </CardContent>
               <CardFooter>
                 <div className="flex items-center">
@@ -79,8 +79,8 @@ export function Testimonials() {
                     />
                   </div>
                   <div>
-                    <h4 className="font-medium">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-500">{testimonial.location}</p>
+                    <h4 className="font-medium text-foreground">{testimonial.name}</h4>
+                    <p className="text-sm text-muted-foreground">{testimonial.location}</p>
                   </div>
                 </div>
               </CardFooter>

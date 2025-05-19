@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Users, Award, Clock, MapPin, Heart, Leaf } from 'lucide-react'
+import { Users, Award, Heart, Leaf } from 'lucide-react'
 
 export default function AboutPage() {
   return (
@@ -35,7 +35,7 @@ export default function AboutPage() {
             <div>
               <h2 className="text-3xl font-bold mb-6">Nuestra Misión</h2>
               <p className="text-lg text-gray-600 mb-8">
-                En Andariegos por Colombia, nuestra misión es transformar cada viaje en una experiencia auténtica e inolvidable, conectando a viajeros con la riqueza natural, cultural y gastronómica de Colombia. Diseñamos rutas personalizadas que promueven el turismo responsable, impulsan las economías locales y celebran la diversidad de nuestro país, ofreciendo un servicio seguro, acogedor y lleno de magia.
+                En Andariegos por Colombia, nuestra misión es transformar cada viaje en una experiencia auténtica e inolvidable, conectando a viajeros con la riqueza natural, cultural y gastronómica de Colombia. Permitimos la personalización de rutas que promueven el turismo responsable, impulsan las economías locales y celebran la diversidad de nuestro país, ofreciendo un servicio seguro, acogedor y lleno de magia.
               </p>
               <div className="space-y-4">
                 <div className="flex items-center">
@@ -83,7 +83,7 @@ export default function AboutPage() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Nuestro Equipo</h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Somos un equipo de 6 apasionados estudiantes dedicados a crear una plataforma moderna, fácil de usar y de calidad
+              Somos un equipo de 6 apasionados estudiantes dedicados a crear una plataforma moderna, fácil de usar y de calidad.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

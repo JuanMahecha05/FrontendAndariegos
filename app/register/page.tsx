@@ -38,7 +38,7 @@ export default function RegisterPage() {
       {/* Image Section */}
       <div className="hidden md:block md:w-1/2 relative order-1 md:order-2">
         <Image
-          src="https://images.pexels.com/photos/6580703/pexels-photo-6580703.jpeg"
+          src="/images/cristorey.jpg"
           alt="Bogotá cityscape at sunset"
           fill
           className="object-cover"

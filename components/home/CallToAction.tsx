@@ -16,7 +16,7 @@ export function CallToAction() {
           <Button asChild size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900">
             <Link href="/tours">Explorar Tours</Link>
           </Button>
-          <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white/10 text-gray-900">
+          <Button asChild variant="outline" size="lg" className="border-foreground text-foreground hover:bg-foreground/10">
             <Link href="/register">Crear Cuenta</Link>
           </Button>
         </div>
