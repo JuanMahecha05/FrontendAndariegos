@@ -1,8 +1,13 @@
+'use client'
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ChevronRight } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 export function Hero() {
+  const { handleAuthAction } = useAuth()
+
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
       {/* Background image with darker overlay */}
@@ -27,23 +32,33 @@ export function Hero() {
             Personaliza tus tours para vivir la auténtica experiencia bogotana, decidiendo experimentar desde sus calles históricas hasta sus paisajes naturales.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fadeIn animation-delay-400">
-            <Button asChild size="lg" className="text-lg px-8 py-6 border-2 border-yellow-600 bg-yellow-500 hover:bg-yellow-600 text-gray-900">
-              <Link href="/tours">
-                Reserva tu tour
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Link>
+            <Button 
+              size="lg" 
+              className="text-lg px-8 py-6 bg-secondary hover:bg-secondary-dark text-secondary-foreground transition-colors"
+              onClick={() => handleAuthAction(() => window.location.href = '/tours')}
+            >
+              Reserva tu tour
+              <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6 border-2 border-red-500 text-white bg-red-600 hover:bg-red-700">
-              <Link href="/crear-tour">
-                Crea tu experiencia
-              </Link>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="text-lg px-8 py-6 border-2 border-red-500 text-white bg-red-600 hover:bg-red-700"
+              onClick={() => handleAuthAction(() => window.location.href = '/crear-tour')}
+            >
+              Crea tu experiencia
             </Button>
           </div>
         </div>
       </div>
       
-      {/* Scroll indicator */}
+      {/* Scroll indicator with Colombian flag colors */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center animate-bounce transform">
+        <div className="flex space-x-1 mb-2">
+          <div className="w-2 h-2 rounded-full bg-secondary"></div>
+          <div className="w-2 h-2 rounded-full bg-primary"></div>
+          <div className="w-2 h-2 rounded-full bg-accent"></div>
+        </div>
         <span className="text-white text-sm mb-2 drop-shadow-lg">Desplázate</span>
         <svg 
           className="w-6 h-6 text-white drop-shadow-lg" 

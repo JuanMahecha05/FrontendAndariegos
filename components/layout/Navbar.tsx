@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Menu, X, MapPin } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
-export function Navbar() {
+export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
@@ -31,22 +31,17 @@ export function Navbar() {
   const navLinks = [
     { href: '/', label: 'Inicio' },
     { href: '/tours', label: 'Tours' },
+    { href: '/eventos', label: 'Eventos' },
     { href: '/acerca', label: 'Acerca de' },
     { href: '/contacto', label: 'Contacto' },
   ]
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled || isMenuOpen
-          ? 'bg-white/95 dark:bg-gray-950 backdrop-blur-sm shadow-md'
-          : 'bg-white dark:bg-gray-950'
-      }`}
-    >
+    <header className="fixed top-0 left-0 right-0 z-50 bg-background shadow-md">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link 
           href="/" 
-          className="flex items-center space-x-2 text-2xl font-bold text-primary dark:text-primary"
+          className="flex items-center space-x-2 text-2xl font-bold text-primary dark:text-white"
           onClick={closeMenu}
         >
           <MapPin className="h-8 w-8" />
@@ -60,10 +55,10 @@ export function Navbar() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className={`transition-colors hover:text-primary ${
+                  className={`transition-colors hover:text-primary dark:hover:text-white ${
                     pathname === link.href
-                      ? 'text-primary font-medium'
-                      : 'text-foreground dark:text-gray-200'
+                      ? 'text-primary dark:text-white font-medium'
+                      : 'text-foreground'
                   }`}
                 >
                   {link.label}
@@ -73,13 +68,13 @@ export function Navbar() {
           </ul>
           
           <div className="flex items-center space-x-4">
-            <Button asChild variant="ghost">
+            <Button asChild variant="ghost" className="hover:bg-secondary hover:text-secondary-foreground">
               <Link href="/login">Iniciar sesión</Link>
             </Button>
-            <Button asChild>
+            <Button asChild className="bg-primary hover:bg-primary/90 text-white dark:bg-white dark:text-primary dark:hover:bg-white/90">
               <Link href="/register">Registrarse</Link>
             </Button>
-            <div className="ml-4 border-l pl-4 dark:border-gray-700">
+            <div className="ml-4 border-l pl-4 border-border">
               <ThemeToggle />
             </div>
           </div>
@@ -108,9 +103,9 @@ export function Navbar() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className={`block py-2 transition-colors hover:text-primary ${
+                    className={`block py-2 transition-colors hover:text-primary dark:hover:text-white ${
                       pathname === link.href
-                        ? 'text-primary font-medium'
+                        ? 'text-primary dark:text-white font-medium'
                         : 'text-foreground'
                     }`}
                     onClick={closeMenu}
@@ -122,13 +117,13 @@ export function Navbar() {
             </ul>
             
             <div className="flex flex-col space-y-4 mt-6">
-              <Button asChild variant="outline" className="w-full">
+              <Button asChild variant="outline" className="w-full hover:bg-secondary hover:text-secondary-foreground">
                 <Link href="/login" onClick={closeMenu}>Iniciar sesión</Link>
               </Button>
-              <Button asChild className="w-full">
+              <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white dark:bg-white dark:text-primary dark:hover:bg-white/90">
                 <Link href="/register" onClick={closeMenu}>Registrarse</Link>
               </Button>
-              <div className="flex justify-center pt-4 border-t dark:border-gray-700">
+              <div className="flex justify-center pt-4 border-t border-border">
                 <ThemeToggle />
               </div>
             </div>
@@ -138,3 +133,5 @@ export function Navbar() {
     </header>
   )
 }
+
+export { Navbar }

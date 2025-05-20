@@ -4,9 +4,6 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: { unoptimized: true },
-  optimizeFonts: {
-    fontDisplay: "swap",
-  },
   webpack: (config, { dev, isServer }) => {
     if (dev && isServer) {
       config.cache = false;
