@@ -34,25 +34,25 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-bold mb-6">Nuestra Misión</h2>
-              <p className="text-lg text-gray-600 mb-8">
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
                 En Andariegos por Colombia, nuestra misión es transformar cada viaje en una experiencia auténtica e inolvidable, conectando a viajeros con la riqueza natural, cultural y gastronómica de Colombia. Permitimos la personalización de rutas que promueven el turismo responsable, impulsan las economías locales y celebran la diversidad de nuestro país, ofreciendo un servicio seguro, acogedor y lleno de magia.
               </p>
               <div className="space-y-4">
                 <div className="flex items-center">
                   <Heart className="h-6 w-6 text-red-600 mr-3" />
-                  <span className="text-lg">Experiencias auténticas y memorables</span>
+                  <span className="text-lg dark:text-gray-200">Experiencias auténticas y memorables</span>
                 </div>
                 <div className="flex items-center">
                   <Leaf className="h-6 w-6 text-green-600 mr-3" />
-                  <span className="text-lg">Turismo responsable y sostenible</span>
+                  <span className="text-lg dark:text-gray-200">Turismo responsable y sostenible</span>
                 </div>
                 <div className="flex items-center">
                   <Users className="h-6 w-6 text-blue-600 mr-3" />
-                  <span className="text-lg">Apoyo a comunidades locales</span>
+                  <span className="text-lg dark:text-gray-200">Apoyo a comunidades locales</span>
                 </div>
                 <div className="flex items-center">
                   <Award className="h-6 w-6 text-yellow-500 mr-3" />
-                  <span className="text-lg">Servicio de excelencia</span>
+                  <span className="text-lg dark:text-gray-200">Servicio de excelencia</span>
                 </div>
               </div>
             </div>
@@ -69,7 +69,7 @@ export default function AboutPage() {
           <div className="mt-20">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-6">Nuestra Visión</h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
                 Ser reconocidos como la operadora de turismo líder en experiencias auténticas en Colombia, destacándonos por nuestro compromiso con la sostenibilidad, la excelencia en el servicio y la pasión por mostrar lo mejor de cada rincón del país. Queremos inspirar a más personas a convertirse en andariegos, promoviendo un turismo consciente que valore, respete y preserve la riqueza de nuestro territorio.
               </p>
             </div>
@@ -78,11 +78,11 @@ export default function AboutPage() {
       </section>
 
       {/* Team Section */}
-      <section className="py-20 bg-gradient-to-r from-yellow-50 via-blue-50 to-red-50">
+      <section className="py-20 bg-gradient-to-r from-yellow-50 via-blue-50 to-red-50 dark:from-gray-800 dark:via-gray-900 dark:to-gray-800">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Nuestro Equipo</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold mb-4 dark:text-white">Nuestro Equipo</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
               Somos un equipo de 6 apasionados estudiantes dedicados a crear una plataforma moderna, fácil de usar y de calidad.
             </p>
           </div>
@@ -125,7 +125,7 @@ export default function AboutPage() {
                 description: 'Experta en diseño de experiencias únicas y memorables'
               }
             ].map((member, index) => (
-              <div key={index} className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
+              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
                 <div className="relative h-64">
                   <Image
                     src={member.image}
@@ -135,9 +135,9 @@ export default function AboutPage() {
                   />
                 </div>
                 <div className="p-6">
-                  <h3 className="text-xl font-semibold mb-2">{member.name}</h3>
-                  <p className="text-blue-600 mb-3">{member.role}</p>
-                  <p className="text-gray-600">{member.description}</p>
+                  <h3 className="text-xl font-semibold mb-2 dark:text-white">{member.name}</h3>
+                  <p className="text-blue-600 dark:text-blue-300 mb-3">{member.role}</p>
+                  <p className="text-gray-600 dark:text-gray-300">{member.description}</p>
                 </div>
               </div>
             ))}
