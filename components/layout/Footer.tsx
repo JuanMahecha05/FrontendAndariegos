@@ -30,23 +30,11 @@ export function Footer() {
               </a>
             </div>
           </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-6">Tours</h3>
-            <ul className="space-y-3">
-              <li><Link href="/tours/historicos" className="text-muted-foreground hover:text-foreground transition-colors">Tours Históricos</Link></li>
-              <li><Link href="/tours/gastronomicos" className="text-muted-foreground hover:text-foreground transition-colors">Tours Gastronómicos</Link></li>
-              <li><Link href="/tours/naturaleza" className="text-muted-foreground hover:text-foreground transition-colors">Tours de Naturaleza</Link></li>
-              <li><Link href="/tours/culturales" className="text-muted-foreground hover:text-foreground transition-colors">Tours Culturales</Link></li>
-              <li><Link href="/tours/personalizados" className="text-muted-foreground hover:text-foreground transition-colors">Tours Personalizados</Link></li>
-            </ul>
-          </div>
-          
+                
           <div>
             <h3 className="text-lg font-semibold mb-6">Enlaces</h3>
             <ul className="space-y-3">
               <li><Link href="/acerca" className="text-muted-foreground hover:text-foreground transition-colors">Acerca de Nosotros</Link></li>
-              <li><Link href="/blog" className="text-muted-foreground hover:text-foreground transition-colors">Blog</Link></li>
               <li><Link href="/testimonios" className="text-muted-foreground hover:text-foreground transition-colors">Testimonios</Link></li>
               <li><Link href="/preguntas-frecuentes" className="text-muted-foreground hover:text-foreground transition-colors">Preguntas Frecuentes</Link></li>
               <li><Link href="/politicas" className="text-muted-foreground hover:text-foreground transition-colors">Políticas de Privacidad</Link></li>
@@ -56,17 +44,13 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-semibold mb-6">Contacto</h3>
             <ul className="space-y-4">
-              <li className="flex items-start space-x-3">
-                <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground" />
-                <span className="text-muted-foreground">Centro Histórico, Bogotá, Colombia</span>
-              </li>
               <li className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
                 <a href="mailto:info@andariegos.co" className="text-muted-foreground hover:text-foreground transition-colors">info@andariegos.co</a>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="h-5 w-5 text-muted-foreground" />
-                <a href="tel:+573001234567" className="text-muted-foreground hover:text-foreground transition-colors">+57 300 123 4567</a>
+                <a href="tel:+573001234567" className="text-muted-foreground hover:text-foreground transition-colors">+57 319 5823782</a>
               </li>
             </ul>
           </div>

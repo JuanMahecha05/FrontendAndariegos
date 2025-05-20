@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Menu, X, MapPin } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import Image from 'next/image'
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -41,11 +42,23 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link 
           href="/" 
-          className="flex items-center space-x-2 text-2xl font-bold text-primary dark:text-white"
+          className="flex items-center"
           onClick={closeMenu}
         >
-          <MapPin className="h-8 w-8" />
-          <span>Andariegos</span>
+          <div className="relative h-20 w-80">
+            <Image
+              src="/images/logolight.png"
+              alt="Andariegos Logo"
+              fill
+              className="object-contain dark:hidden"
+            />
+            <Image
+              src="/images/logodark.png"
+              alt="Andariegos Logo"
+              fill
+              className="object-contain hidden dark:block"
+            />
+          </div>
         </Link>
 
         {/* Desktop Navigation */}

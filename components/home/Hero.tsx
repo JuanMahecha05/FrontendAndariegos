@@ -23,18 +23,18 @@ export function Hero() {
       />
       
       {/* Content */}
-      <div className="container mx-auto px-4 z-10 text-center">
-        <div className="max-w-3xl mx-auto mb-20">
+      <div className="container mx-auto px-4 z-10 text-center relative">
+        <div className="max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-fadeIn drop-shadow-lg">
             Descubre Bogotá, a tu ritmo, en las actividades que quieras
           </h1>
           <p className="text-xl md:text-2xl text-white mb-8 animate-fadeIn animation-delay-200 drop-shadow-lg">
             Personaliza tus tours para vivir la auténtica experiencia bogotana, decidiendo experimentar desde sus calles históricas hasta sus paisajes naturales.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 animate-fadeIn animation-delay-400">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 animate-fadeIn animation-delay-400 max-w-2xl mx-auto">
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 bg-secondary hover:bg-secondary-dark text-secondary-foreground transition-colors"
+              className="w-full sm:w-[200px] text-lg px-8 py-6 bg-secondary hover:bg-secondary-dark text-secondary-foreground transition-colors"
               onClick={() => handleAuthAction(() => window.location.href = '/tours')}
             >
               Reserva tu tour
@@ -43,7 +43,7 @@ export function Hero() {
             <Button 
               variant="outline" 
               size="lg" 
-              className="text-lg px-8 py-6 border-2 border-red-500 text-white bg-red-600 hover:bg-red-700"
+              className="w-full sm:w-[200px] text-lg px-8 py-6 border border-red-500 text-white bg-red-600 hover:bg-red-700"
               onClick={() => handleAuthAction(() => window.location.href = '/crear-tour')}
             >
               Crea tu experiencia
@@ -53,7 +53,7 @@ export function Hero() {
       </div>
       
       {/* Scroll indicator with Colombian flag colors */}
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center animate-bounce transform">
+      <div className="absolute bottom-10 left-0 right-0 mx-auto z-10 flex flex-col items-center animate-bounce transform">
         <div className="flex space-x-1 mb-2">
           <div className="w-2 h-2 rounded-full bg-secondary"></div>
           <div className="w-2 h-2 rounded-full bg-primary"></div>
