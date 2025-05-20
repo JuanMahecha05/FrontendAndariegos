@@ -1,10 +1,13 @@
+"use client";
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function EventosPage() {
+  const { user } = useAuth();
   const eventos = [
     {
       id: 1,
@@ -66,9 +69,15 @@ export default function EventosPage() {
           </div>
         </div>
       </div>
-
-      {/* Events Grid */}
       <div className="container mx-auto px-4">
+        {/* Botón Crear evento solo para organizadores */}
+        {user?.role === 'organizador' && (
+          <div className="mb-10 flex justify-center">
+            <Button asChild size="lg" className="px-8 py-4 text-lg font-semibold animate-bounce">
+              <Link href="/eventos/crear">Crear evento</Link>
+            </Button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {eventos.map((evento) => (
             <Card key={evento.id} className="overflow-hidden transition-all duration-300 hover:shadow-lg">

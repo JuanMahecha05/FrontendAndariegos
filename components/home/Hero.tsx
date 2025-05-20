@@ -3,8 +3,29 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ChevronRight } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 
 export function Hero() {
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  const handleReserve = () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    } else {
+      router.push('/tours');
+    }
+  };
+
+  const handleCreate = () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    } else {
+      router.push('/crear-tour');
+    }
+  };
+
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
       {/* Background image with darker overlay */}
@@ -32,22 +53,18 @@ export function Hero() {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6 bg-secondary hover:bg-secondary-dark text-secondary-foreground transition-colors"
-              asChild
+              onClick={handleReserve}
             >
-              <Link href="/tours">
-                Reserva tu tour
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Link>
+              Reserva tu tour
+              <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
               variant="outline" 
               size="lg" 
               className="text-lg px-8 py-6 border-2 border-red-500 text-white bg-red-600 hover:bg-red-700"
-              asChild
+              onClick={handleCreate}
             >
-              <Link href="/crear-tour">
-                Crea tu experiencia
-              </Link>
+              Crea tu experiencia
             </Button>
           </div>
         </div>
