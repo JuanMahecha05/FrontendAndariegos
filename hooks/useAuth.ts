@@ -1,77 +1,55 @@
 "use client";
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+// import { UserRole } from '@/lib/roles' // Descomentar cuando el enum esté disponible
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-export type UserRole = "user" | "organizador" | "admin";
+export type UserRole = 'user' | 'organizador' | 'admin' // Temporal, reemplazar por el enum
 
 export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-}
-
-interface AuthContextType {
-  user: AuthUser | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    try {
-      const mockUser: AuthUser = {
-        id: "1",
-        name: "Usuario Ejemplo",
-        email: email,
-        role: "user",
-      };
-      setUser(mockUser);
-      localStorage.setItem("user", JSON.stringify(mockUser));
-    } catch (error) {
-      console.error("Error al iniciar sesión:", error);
-      throw error;
-    }
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-  };
-
-  const value = {
-    user,
-    login,
-    logout,
-    isLoading,
-  };
-
-  return React.createElement(
-    AuthContext.Provider,
-    { value },
-    children
-  );
+  id: string
+  name: string
+  email: string
+  role: UserRole
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth debe ser usado dentro de un AuthProvider");
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    // Simulación: obtener usuario y rol desde localStorage o JWT
+    const stored = localStorage.getItem('authUser')
+    if (stored) {
+      setUser(JSON.parse(stored))
+    }
+    setLoading(false)
+  }, [])
+
+  const login = (userData: AuthUser) => {
+    setUser(userData)
+    localStorage.setItem('authUser', JSON.stringify(userData))
   }
-  return context;
+
+  const logout = () => {
+    setUser(null)
+    localStorage.removeItem('authUser')
+  }
+
+  const handleAuthAction = (action: () => void) => {
+    if (!user) {
+      router.push('/login')
+    } else {
+      action()
+    }
+  }
+
+  return {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    handleAuthAction
+  }
 } 
