@@ -18,6 +18,10 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
+import { useMutation } from '@apollo/client';
+import { LOGIN_MUTATION } from '@/graphql/mutations/auth';
+import Cookies from 'js-cookie';
+import { useAuth } from '@/hooks/AuthContext';
 
 const loginSchema = z.object({
   email: z
@@ -45,41 +49,47 @@ export function LoginForm() {
     },
   })
 
+  const [login_mutation] = useMutation(LOGIN_MUTATION);
+  const { login } = useAuth();
+
   const onSubmit = async (data: LoginFormValues) => {
-    setIsLoading(true)
-    
-    try {
-      // Demo login logic - would connect to an authentication service in production
-      await new Promise(resolve => setTimeout(resolve, 1500))
+  setIsLoading(true);
+  
+  try {
+      const response = await login_mutation({
+        variables: {
+          identifier: data.email,
+          password: data.password,
+        },
+      });
+
+      const { access_token, user } = response.data.login;
+      login(access_token);
       
-      // For demo purposes only - simulate login success or specific errors
-      if (data.email === 'test@example.com' && data.password === 'password') {
-        toast({
-          title: '¡Inicio de sesión exitoso!',
-          description: 'Bienvenido a Andariegos.',
-        })
-        router.push('/')
-      } else if (data.email === 'error@example.com') {
-        form.setError('email', { 
-          type: 'manual',
-          message: 'El correo electrónico no está registrado'
-        })
-      } else {
-        form.setError('root', { 
-          type: 'manual',
-          message: 'Credenciales inválidas. Por favor, verifica tu correo y contraseña.'
-        })
-      }
-    } catch (error) {
+      toast({
+        title: '¡Inicio de sesión exitoso!',
+        description: `Bienvenido, ${user.name}`,
+      })
+
+      router.push('/'); // redirige al home
+
+    } catch (error: any) {
+      const gqlError = error?.graphQLErrors?.[0]?.message;
+      
       toast({
         title: 'Error al iniciar sesión',
-        description: 'Hubo un problema al intentar iniciar sesión. Inténtalo de nuevo.',
+        description: gqlError || 'Correo o contraseña inválidos.',
         variant: 'destructive',
-      })
+      });
+
+      form.setError('root', {
+        type: 'manual',
+        message: gqlError || 'Correo o contraseña inválidos.',
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Form {...form}>

@@ -20,12 +20,18 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator'
+import { useMutation } from '@apollo/client';
+import { REGISTER_MUTATION } from '@/graphql/mutations/auth'
 
 const registerSchema = z.object({
   name: z
     .string()
     .min(3, { message: 'El nombre debe tener al menos 3 caracteres' })
     .max(50, { message: 'El nombre no puede tener más de 50 caracteres' }),
+  username: z
+    .string()
+    .min(3, { message: 'El nombre de usuario debe tener al menos 3 caracteres' })
+    .max(50, { message: 'El nombre de usuario no puede tener más de 50 caracteres' }),
   email: z
     .string()
     .min(1, { message: 'El correo electrónico es requerido' })
@@ -62,6 +68,7 @@ export function RegisterForm() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: '',
+      username: '',
       email: '',
       password: '',
       confirmPassword: '',
@@ -70,24 +77,34 @@ export function RegisterForm() {
     mode: 'onChange',
   })
 
+  const [registerUser] = useMutation(REGISTER_MUTATION)
+
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true)
-    
+
     try {
-      // Demo registration logic - would connect to an authentication service in production
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // For demo purposes, simulate successful registration
+      const { data: result } = await registerUser({
+        variables: {
+          createUserInput: {
+            name: data.name,
+            email: data.email,
+            username: data.email, // O usa otro campo si quieres pedirlo
+            password: data.password,
+            roles: ['USER'],
+          },
+        },
+      })
+
       toast({
         title: '¡Registro exitoso!',
         description: 'Bienvenido a Andariegos. Tu cuenta ha sido creada correctamente.',
       })
-      
+
       router.push('/login')
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error al registrarse',
-        description: 'Hubo un problema al intentar crear tu cuenta. Inténtalo de nuevo.',
+        description: error.message,
         variant: 'destructive',
       })
     } finally {
@@ -111,6 +128,25 @@ export function RegisterForm() {
                 <Input
                   placeholder="Juan Pérez"
                   autoComplete="name"
+                  disabled={isLoading}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nombre de usuario</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Juanpe"
+                  autoComplete="username"
                   disabled={isLoading}
                   {...field}
                 />
