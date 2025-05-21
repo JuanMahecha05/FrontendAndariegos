@@ -40,8 +40,27 @@ export function Hero() {
         }}
       />
       
+      {/* Scroll indicator with Colombian flag colors */}
+      <div className="absolute bottom-8 left-0 right-0 mx-auto flex flex-col items-center animate-bounce">
+        <div className="flex space-x-1 mb-2">
+          <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+          <div className="w-2 h-2 rounded-full bg-blue-700"></div>
+          <div className="w-2 h-2 rounded-full bg-red-600"></div>
+        </div>
+        <span className="text-white text-sm mb-2 drop-shadow-lg">Desplázate</span>
+        <svg 
+          className="w-6 h-6 text-white drop-shadow-lg" 
+          fill="none" 
+          strokeWidth="2" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+        </svg>
+      </div>
+
       {/* Content */}
-      <div className="container mx-auto px-4 z-10 text-center relative">
+      <div className="relative z-10 text-center px-4">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight animate-fadeIn drop-shadow-lg">
             Descubre Bogotá, a tu ritmo, en las actividades que quieras
@@ -52,7 +71,7 @@ export function Hero() {
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 animate-fadeIn animation-delay-400 max-w-2xl mx-auto">
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 bg-secondary hover:bg-secondary-dark text-secondary-foreground transition-colors"
+              className="text-lg px-8 py-6 bg-yellow-500 hover:bg-yellow-600 text-white transition-colors"
               onClick={handleReserve}
             >
               Reserva tu tour
@@ -68,25 +87,6 @@ export function Hero() {
             </Button>
           </div>
         </div>
-      </div>
-      
-      {/* Scroll indicator with Colombian flag colors */}
-      <div className="absolute bottom-10 left-0 right-0 mx-auto z-10 flex flex-col items-center animate-bounce transform">
-        <div className="flex space-x-1 mb-2">
-          <div className="w-2 h-2 rounded-full bg-secondary"></div>
-          <div className="w-2 h-2 rounded-full bg-primary"></div>
-          <div className="w-2 h-2 rounded-full bg-accent"></div>
-        </div>
-        <span className="text-white text-sm mb-2 drop-shadow-lg">Desplázate</span>
-        <svg 
-          className="w-6 h-6 text-white drop-shadow-lg" 
-          fill="none" 
-          strokeWidth="2" 
-          viewBox="0 0 24 24" 
-          stroke="currentColor"
-        >
-          <path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-        </svg>
       </div>
     </section>
   )

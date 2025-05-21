@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from "@/hooks/useAuth";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -39,14 +40,16 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <head />
       <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}>
-        <ThemeProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <Toaster />
-          </div>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <Toaster />
+            </div>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

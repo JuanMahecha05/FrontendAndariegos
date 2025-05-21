@@ -92,37 +92,37 @@ export default function AboutPage() {
                 name: 'Daniel Tobar',
                 role: 'Frontend',
                 image: '/images/dan_cropped.png',
-                description: 'Visionario del turismo sostenible con más de 10 años de experiencia'
+                description: 'Apasionado por el diseño y la experiencia de usuario, encargado de crear interfaces atractivas y funcionales.'
               },
               {
                 name: 'Simón Ramos',
                 role: 'Backend',
                 image: '/images/simon_foto.png',
-                description: 'Experta en diseño de experiencias únicas y memorables'
+                description: 'Especialista en desarrollo backend, responsable de la lógica y la arquitectura del servidor.'
               },
               {
                 name: 'Miguel Parrado',
                 role: 'Backend',
                 image: '/images/miguel_foto.png',
-                description: 'Ingeniero apasionado por la innovación tecnológica'
+                description: 'Dedicado a la optimización y seguridad del backend, asegurando un funcionamiento robusto de la plataforma.'
               },
               {
                 name: 'Juan Jaimes',
                 role: 'Backend',
                 image: '/images/jaimes_foto.png',
-                description: 'Experta en diseño de experiencias únicas y memorables'
+                description: 'Experto en integración de servicios y bases de datos, garantizando la eficiencia y escalabilidad del sistema.'
               },
               {
                 name: 'Juan Mahecha',
                 role: 'Frontend',
-                image: '/images/picada.jpg',
-                description: 'Experta en diseño de experiencias únicas y memorables'
+                image: '/images/juan_mahecha.jpg',
+                description: 'Creativo en el desarrollo de interfaces, enfocado en brindar una experiencia visual moderna y accesible.'
               },
               {
                 name: 'Jose Alvarado',
                 role: 'Frontend',
                 image: '/images/picada.jpg',
-                description: 'Experta en diseño de experiencias únicas y memorables'
+                description: 'Enfocado en la usabilidad y el diseño responsivo, asegurando que la plataforma sea intuitiva en cualquier dispositivo.'
               }
             ].map((member, index) => (
               <div key={index} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300">
@@ -146,7 +146,7 @@ export default function AboutPage() {
       </section>
 
       {/* Call to Action */}
-      <section className="py-20 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-700">
+      <section className="py-20 bg-primary">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6 text-white">
             ¿Listo para explorar Colombia con nosotros?
@@ -155,10 +155,10 @@ export default function AboutPage() {
             Únete a nuestra comunidad de viajeros y descubre la magia de nuestro país
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Button asChild size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900">
+            <Button asChild size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-white">
               <Link href="/tours">Ver Tours Disponibles</Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
+            <Button asChild size="lg" className="bg-red-600 hover:bg-red-700 text-white">
               <Link href="/contacto">Contáctanos</Link>
             </Button>
           </div>

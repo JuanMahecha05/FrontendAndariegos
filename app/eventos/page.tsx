@@ -5,9 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/components/ui/use-toast'
+import { useRouter } from "next/navigation"
 
 export default function EventosPage() {
+  const { toast } = useToast();
   const { user } = useAuth();
+  const router = useRouter();
+
   const eventos = [
     {
       id: 1,
@@ -50,6 +55,48 @@ export default function EventosPage() {
     }
   ]
 
+  const handleReservar = (eventoId: number) => {
+    if (!user) {
+      toast({
+        title: "Inicia sesión",
+        description: "Debes iniciar sesión para reservar eventos",
+        variant: "destructive",
+      });
+      setTimeout(() => {
+        router.push("/login");
+      }, 1200); // 1.2 segundos para que vea el toast
+      return;
+    }
+    
+    // Obtener el evento seleccionado
+    const eventoSeleccionado = eventos.find(e => e.id === eventoId);
+    if (!eventoSeleccionado) return;
+
+    // Obtener eventos reservados actuales del localStorage
+    const eventosReservados = JSON.parse(localStorage.getItem('eventosReservados') || '[]');
+    
+    // Verificar si el evento ya está reservado
+    if (eventosReservados.some((e: any) => e.id === eventoId)) {
+      toast({
+        title: "Evento ya reservado",
+        description: "Ya tienes una reserva para este evento.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Agregar el nuevo evento a la lista
+    eventosReservados.push(eventoSeleccionado);
+    
+    // Guardar en localStorage
+    localStorage.setItem('eventosReservados', JSON.stringify(eventosReservados));
+    
+    toast({
+      title: "¡Reserva exitosa!",
+      description: "Has reservado tu lugar en el evento.",
+    });
+  };
+
   return (
     <div className="min-h-screen pt-20 pb-16">
       {/* Hero Section */}
@@ -64,11 +111,12 @@ export default function EventosPage() {
           <div className="text-center text-white">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Eventos en Bogotá</h1>
             <p className="text-xl md:text-2xl max-w-2xl mx-auto px-4">
-              Experiencias únicas para descubrir la ciudad
+              Descubre y participa en los mejores eventos de la ciudad
             </p>
           </div>
         </div>
       </div>
+
       <div className="container mx-auto px-4">
         {/* Botón Crear evento solo para organizadores */}
         {user?.role === 'organizador' && (
@@ -78,6 +126,7 @@ export default function EventosPage() {
             </Button>
           </div>
         )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {eventos.map((evento) => (
             <Card key={evento.id} className="overflow-hidden transition-all duration-300 hover:shadow-lg">
@@ -104,16 +153,11 @@ export default function EventosPage() {
                 <div className="space-y-3">
                   <div className="flex items-center text-sm text-gray-500">
                     <Calendar className="h-4 w-4 mr-2" />
-                    <span>{new Date(evento.date).toLocaleDateString('es-CO', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })} - {evento.time}</span>
+                    <span>{evento.date}</span>
                   </div>
                   <div className="flex items-center text-sm text-gray-500">
                     <Clock className="h-4 w-4 mr-2" />
-                    <span>{evento.duration}</span>
+                    <span>{evento.time}</span>
                   </div>
                   <div className="flex items-center text-sm text-gray-500">
                     <MapPin className="h-4 w-4 mr-2" />
@@ -125,16 +169,12 @@ export default function EventosPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between items-center">
-                <div className="text-lg font-semibold">
-                  {new Intl.NumberFormat('es-CO', {
-                    style: 'currency',
-                    currency: 'COP',
-                    maximumFractionDigits: 0
-                  }).format(evento.price)}
-                </div>
-                <Button asChild>
-                  <Link href={`/eventos/${evento.id}`}>Reservar</Link>
+              <CardFooter>
+                <Button 
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                  onClick={() => handleReservar(evento.id)}
+                >
+                  Reservar
                 </Button>
               </CardFooter>
             </Card>
@@ -142,5 +182,5 @@ export default function EventosPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
