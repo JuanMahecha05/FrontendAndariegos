@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useMutation } from '@apollo/client';
 import { LOGIN_MUTATION } from '@/graphql/mutations/auth';
 import Cookies from 'js-cookie';
+import { useAuth } from '@/hooks/AuthContext';
 
 const loginSchema = z.object({
   email: z
@@ -48,13 +49,14 @@ export function LoginForm() {
     },
   })
 
-  const [login] = useMutation(LOGIN_MUTATION);
+  const [login_mutation] = useMutation(LOGIN_MUTATION);
+  const { login } = useAuth();
 
   const onSubmit = async (data: LoginFormValues) => {
   setIsLoading(true);
   
   try {
-      const response = await login({
+      const response = await login_mutation({
         variables: {
           identifier: data.email,
           password: data.password,
@@ -62,14 +64,7 @@ export function LoginForm() {
       });
 
       const { access_token, user } = response.data.login;
-
-      // Guardar access_token en cookies
-      Cookies.set('access_token', access_token, {
-        expires: 7,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Lax',
-        path: '/',
-      });
+      login(access_token);
       
       toast({
         title: '¡Inicio de sesión exitoso!',

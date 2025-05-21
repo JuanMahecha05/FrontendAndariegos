@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, User } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import Image from "next/image";
-import { useAuth } from '@/hooks/useAuth';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import Cookies from 'js-cookie';
-import { jwtDecode } from 'jwt-decode';
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/hooks/AuthContext';
 
-type TokenPayload = {
-  username: string;
-};
+export enum Role {
+  USER = 'USER',
+  ORGANIZER = 'ORGANIZER',
+  ADMIN = 'ADMIN',
+}
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -46,21 +46,7 @@ export default function Navbar() {
     { href: "/contacto", label: "Contacto" },
   ];
 
-  const token = Cookies.get('token');
-  const [userName, setUserName] = useState('');
-
-  useEffect(() => {
-    const token = Cookies.get('access_token');
-    console.log('Token desde cookie (register):', token);
-    if (token) {
-      try {
-        const decoded = jwtDecode<TokenPayload>(token);
-        setUserName(decoded.username);
-      } catch (error) {
-        console.error('Token inválido');
-      }
-    }
-  }, []);
+ 
   
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background shadow-md">
@@ -102,31 +88,21 @@ export default function Navbar() {
           </ul>
 
           <div className="flex items-center space-x-4">
-            {!user ? (
+            {!isAuthenticated ? (
               <>
-                {!token && (
-                  <>
-                    <Button
-                      asChild
-                      variant="ghost"
-                      className="hover:bg-secondary hover:text-secondary-foreground"
-                    >
-                      <Link href="/login">Iniciar sesión</Link>
-                    </Button>
-                    <Button
-                      asChild
-                      className="bg-primary hover:bg-primary/90 text-white dark:bg-white dark:text-primary dark:hover:bg-white/90"
-                    >
-                      <Link href="/register">Registrarse</Link>
-                    </Button>
-                  </>
-                )}
-
-                {
-                <div>
-                  <p className="text-2xl font-bold">Bienvenido, {userName || 'usuario'} 👋</p>
-                </div>
-                }
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="hover:bg-secondary hover:text-secondary-foreground"
+                >
+                  <Link href="/login">Iniciar sesión</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="bg-primary hover:bg-primary/90 text-white dark:bg-white dark:text-primary dark:hover:bg-white/90"
+                >
+                  <Link href="/register">Registrarse</Link>
+                </Button>
               </>
             ) : (
               <DropdownMenu.Root>
@@ -137,13 +113,13 @@ export default function Navbar() {
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content className="bg-background rounded-md shadow-lg p-2 min-w-[180px]">
                   <DropdownMenu.Label className="px-2 py-1 text-xs text-muted-foreground">
-                    {user.name}
+                    {user?.name}
                   </DropdownMenu.Label>
                   <DropdownMenu.Separator className="my-1 h-px bg-border" />
                   <DropdownMenu.Item asChild>
                     <Link href="/perfil" className="block px-2 py-1 text-sm hover:bg-secondary rounded">Perfil</Link>
                   </DropdownMenu.Item>
-                  {user.role === 'admin' && (
+                  {user?.roles.includes(Role.ADMIN) && (
                     <DropdownMenu.Item asChild>
                       <Link href="/admin" className="block px-2 py-1 text-sm hover:bg-secondary rounded">Panel de administración</Link>
                     </DropdownMenu.Item>

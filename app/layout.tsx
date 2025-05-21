@@ -6,7 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Toaster } from '@/components/ui/toaster';
 import ApolloProviderWrapper from './ApolloProviderWrapper';
-
+import { AuthProvider } from '@/hooks/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -41,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}
       >
+        <AuthProvider>
         <ThemeProvider>
           <ApolloProviderWrapper>
             <div className="relative flex min-h-screen flex-col">
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </ApolloProviderWrapper>
         </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
