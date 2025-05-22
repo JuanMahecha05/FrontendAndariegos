@@ -1,16 +1,18 @@
-import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
-import { setContext } from '@apollo/client/link/context';
+import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
 
+console.log("API Gateway URL:", process.env.NEXT_PUBLIC_API_GATEWAY_URL);
 const httpLink = createHttpLink({
-  uri: 'http://localhost:4000/graphql', // Cambia a la URL de tu backend
+  uri: `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/graphql`, // Cambia a la URL de tu backend
 });
 
 const authLink = setContext((_, { headers }) => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("token") : null;
   return {
     headers: {
       ...headers,
-      authorization: token ? `Bearer ${token}` : '',
+      authorization: token ? `Bearer ${token}` : "",
     },
   };
 });

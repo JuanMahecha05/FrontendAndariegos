@@ -19,6 +19,9 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+ARG NEXT_PUBLIC_API_GATEWAY_URL
+ENV NEXT_PUBLIC_API_GATEWAY_URL=$NEXT_PUBLIC_API_GATEWAY_URL
+
 # Build the application
 RUN npm run build
 
