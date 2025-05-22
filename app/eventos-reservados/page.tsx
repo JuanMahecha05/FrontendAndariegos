@@ -1,44 +1,59 @@
 "use client";
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { useToast } from "@/components/ui/use-toast"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from 'react'
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Clock, MapPin, Star, Users, Calendar } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/AuthContext";
 
 export default function EventosReservadosPage() {
   const [eventosReservados, setEventosReservados] = useState([]);
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
+  console.log("user", user);
 
   // Verificar autenticación
   if (!user) {
-    router.push('/login');
+    // router.push("/login");
     return null;
   }
 
   useEffect(() => {
     // Obtener eventos reservados del localStorage
-    const eventos = JSON.parse(localStorage.getItem('eventosReservados') || '[]');
+    const eventos = JSON.parse(
+      localStorage.getItem("eventosReservados") || "[]"
+    );
     setEventosReservados(eventos);
   }, []);
 
   const handleCancelarReserva = (eventoId: number) => {
     // Obtener eventos actuales
-    const eventos = JSON.parse(localStorage.getItem('eventosReservados') || '[]');
-    
+    const eventos = JSON.parse(
+      localStorage.getItem("eventosReservados") || "[]"
+    );
+
     // Filtrar el evento a cancelar
     const eventosActualizados = eventos.filter((e: any) => e.id !== eventoId);
-    
+
     // Guardar en localStorage
-    localStorage.setItem('eventosReservados', JSON.stringify(eventosActualizados));
-    
+    localStorage.setItem(
+      "eventosReservados",
+      JSON.stringify(eventosActualizados)
+    );
+
     // Actualizar el estado
     setEventosReservados(eventosActualizados);
-    
+
     toast({
       title: "Reserva cancelada",
       description: "Has cancelado tu reserva exitosamente.",
@@ -57,7 +72,9 @@ export default function EventosReservadosPage() {
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Mis Eventos Reservados</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Mis Eventos Reservados
+            </h1>
             <p className="text-xl md:text-2xl max-w-2xl mx-auto px-4">
               Gestiona tus reservas y experiencias
             </p>
@@ -68,8 +85,12 @@ export default function EventosReservadosPage() {
       <div className="container mx-auto px-4">
         {eventosReservados.length === 0 ? (
           <div className="text-center py-10">
-            <h2 className="text-2xl font-semibold text-gray-600">No tienes eventos reservados</h2>
-            <p className="mt-2 text-gray-500">¡Explora nuestros eventos y haz tu primera reserva!</p>
+            <h2 className="text-2xl font-semibold text-gray-600">
+              No tienes eventos reservados
+            </h2>
+            <p className="mt-2 text-gray-500">
+              ¡Explora nuestros eventos y haz tu primera reserva!
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -108,8 +129,8 @@ export default function EventosReservadosPage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     className="w-full"
                     onClick={() => handleCancelarReserva(evento.id)}
                   >
@@ -123,4 +144,4 @@ export default function EventosReservadosPage() {
       </div>
     </div>
   );
-} 
+}

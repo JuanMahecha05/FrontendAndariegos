@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, User } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import Image from "next/image";
-import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -17,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/AuthContext";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -94,19 +94,31 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             {!user ? (
               <>
-                <Button asChild className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                <Button
+                  asChild
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white"
+                >
                   <Link href="/login">Iniciar sesión</Link>
                 </Button>
-                <Button asChild className="bg-primary hover:bg-primary/90 text-white">
+                <Button
+                  asChild
+                  className="bg-primary hover:bg-primary/90 text-white"
+                >
                   <Link href="/register">Registrarse</Link>
                 </Button>
               </>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full"
+                  >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src="/avatars/01.png" alt="Usuario Ejemplo" />
+                      <AvatarImage
+                        src="/avatars/01.png"
+                        alt="Usuario Ejemplo"
+                      />
                       <AvatarFallback>UE</AvatarFallback>
                     </Avatar>
                   </Button>
@@ -114,7 +126,9 @@ export default function Navbar() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">Usuario Ejemplo</p>
+                      <p className="text-sm font-medium leading-none">
+                        Usuario Ejemplo
+                      </p>
                       <p className="text-xs leading-none text-muted-foreground">
                         usuario@ejemplo.com
                       </p>
