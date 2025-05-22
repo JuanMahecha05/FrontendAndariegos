@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import Cookies from 'js-cookie';
+import { useRouter } from 'next/navigation';
+
 
 export type Role = 'USER' | 'ORGANIZER' | 'ADMIN';
 
@@ -24,6 +26,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
   const login = (token: string) => {
     try {
@@ -44,6 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = () => {
     Cookies.remove('access_token');
     setUser(null);
+    router.push('/');
   };
 
   useEffect(() => {
