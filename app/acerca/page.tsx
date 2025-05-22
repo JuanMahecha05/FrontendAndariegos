@@ -121,7 +121,7 @@ export default function AboutPage() {
               {
                 name: 'Jose Alvarado',
                 role: 'Frontend',
-                image: '/images/picada.jpg',
+                image: '/images/alvarado.jpg',
                 description: 'Enfocado en la usabilidad y el diseño responsivo, asegurando que la plataforma sea intuitiva en cualquier dispositivo.'
               }
             ].map((member, index) => (
