@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks/AuthContext'
 import { useToast } from '@/components/ui/use-toast'
 import { useRouter } from "next/navigation"
 
 export default function EventosPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const router = useRouter();
 
   const eventos = [
@@ -56,7 +56,7 @@ export default function EventosPage() {
   ]
 
   const handleReservar = (eventoId: number) => {
-    if (!user) {
+    if (!isAuthenticated) {
       toast({
         title: "Inicia sesión",
         description: "Debes iniciar sesión para reservar eventos",
@@ -119,7 +119,7 @@ export default function EventosPage() {
 
       <div className="container mx-auto px-4">
         {/* Botón Crear evento solo para organizadores */}
-        {user?.role === 'organizador' && (
+        {user?.roles.includes('ORGANIZER') && (
           <div className="mb-10 flex justify-center">
             <Button asChild size="lg" className="px-8 py-4 text-lg font-semibold animate-bounce">
               <Link href="/eventos/crear">Crear evento</Link>
