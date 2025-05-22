@@ -117,9 +117,9 @@ export default function Navbar() {
                     <Avatar className="h-8 w-8">
                       <AvatarImage
                         src="/avatars/01.png"
-                        alt="Usuario Ejemplo"
+                        alt={user.name}
                       />
-                      <AvatarFallback>UE</AvatarFallback>
+                      <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -127,19 +127,25 @@ export default function Navbar() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        Usuario Ejemplo
+                        {user.name}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        usuario@ejemplo.com
+                        {user.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {user.roles.includes('ORGANIZER') && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/eventos-admin">
+                        Gestionar Eventos
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
-                    <Link href="/perfil">Perfil</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/eventos-reservados">Mis Eventos</Link>
+                    <Link href="/eventos-reservados">
+                      Mis Reservas
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout}>
