@@ -334,18 +334,14 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
                   <div className="space-y-4">
                     {tour.events?.map((event: any, index: number) => (
                       <div key={index} className="relative flex items-start bg-card rounded-lg shadow-sm overflow-hidden">
-                        <div className="relative h-40" style={{ width: '50%', minWidth: '160px', maxWidth: '320px' }}>
+                        <div className="relative h-40" style={{ width: '40%', minWidth: '160px', maxWidth: '320px' }}>
                           <Image
                             src={event.image}
                             alt={event.title}
                             fill
                             className="object-cover"
                           />
-                          <div className="absolute inset-0" style={{
-                            background: 'linear-gradient(to right, rgba(0,0,0,0.8) 60%, rgba(0,0,0,0.0) 100%)',
-                            width: '100%',
-                            height: '100%'
-                          }} />
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-card" />
                           <div className="absolute top-2 left-2 w-8 h-8 bg-primary/90 text-white rounded-full flex items-center justify-center">
                             <span className="font-semibold">{index + 1}</span>
                           </div>
@@ -363,7 +359,6 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
                   <Link href={`/reservar-tour/${tour.id}`}>
                     <Button variant="default">Reservar Tour</Button>
                   </Link>
-                  <Button variant="outline">Compartir</Button>
                 </div>
               </div>
             </DialogContent>
