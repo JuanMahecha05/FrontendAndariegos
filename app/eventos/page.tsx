@@ -7,6 +7,13 @@ import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
 import { useAuth } from '@/hooks/AuthContext'
 import { useToast } from '@/components/ui/use-toast'
 import { useRouter } from "next/navigation"
+import { useState, useEffect } from 'react'
+
+const borderColors = [
+  'border-yellow-500 shadow-[0_0_12px_2px_rgba(234,179,8,0.7)]',
+  'border-blue-500 shadow-[0_0_12px_2px_rgba(59,130,246,0.7)]',
+  'border-red-500 shadow-[0_0_12px_2px_rgba(239,68,68,0.7)]',
+];
 
 export default function EventosPage() {
   const { toast } = useToast();
@@ -54,6 +61,19 @@ export default function EventosPage() {
       time: '14:00'
     }
   ]
+
+  const [cardBorders, setCardBorders] = useState(Array(eventos.length).fill('border-gray-300'));
+  const [prevColors, setPrevColors] = useState(Array(eventos.length).fill(''));
+
+  const handleMouseEnter = (idx: number) => {
+    let availableColors = borderColors.filter(c => c !== prevColors[idx]);
+    const newColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+    setCardBorders(borders => borders.map((b, i) => i === idx ? newColor : b));
+    setPrevColors(colors => colors.map((c, i) => i === idx ? newColor : c));
+  };
+  const handleMouseLeave = (idx: number) => {
+    setCardBorders(borders => borders.map((b, i) => i === idx ? 'border-gray-300' : b));
+  };
 
   const handleReservar = (eventoId: number) => {
     if (!isAuthenticated) {
@@ -128,8 +148,13 @@ export default function EventosPage() {
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {eventos.map((evento) => (
-            <Card key={evento.id} className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
+          {eventos.map((evento, idx) => (
+            <Card
+              key={evento.id}
+              className={`flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg border-2 ${cardBorders[idx]}`}
+              onMouseEnter={() => handleMouseEnter(idx)}
+              onMouseLeave={() => handleMouseLeave(idx)}
+            >
               <div className="relative h-52 w-full">
                 <Image
                   src={evento.image}

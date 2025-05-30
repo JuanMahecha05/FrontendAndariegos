@@ -1,3 +1,4 @@
+"use client";
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -11,8 +12,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { useState, useEffect } from 'react'
+import { CarouselImages } from '@/components/ui/carousel'
+import { useAuth } from '@/hooks/AuthContext'
+import { useRouter } from 'next/navigation'
+
+const borderColors = [
+  'border-yellow-500 shadow-[0_0_12px_2px_rgba(234,179,8,0.7)]', // amarillo
+  'border-blue-500 shadow-[0_0_12px_2px_rgba(59,130,246,0.7)]', // azul
+  'border-red-500 shadow-[0_0_12px_2px_rgba(239,68,68,0.7)]', // rojo
+]
 
 export default function ToursPage() {
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+
   const officialTours = [
     {
       id: 1,
@@ -165,6 +179,20 @@ export default function ToursPage() {
     }
   ]
 
+  const [cardBorders, setCardBorders] = useState(Array(officialTours.length + userTours.length).fill('border-gray-300'))
+  const [prevColors, setPrevColors] = useState(Array(officialTours.length + userTours.length).fill(''))
+
+  const handleMouseEnter = (idx: number) => {
+    let availableColors = borderColors.filter(c => c !== prevColors[idx])
+    const newColor = availableColors[Math.floor(Math.random() * availableColors.length)]
+    setCardBorders(borders => borders.map((b, i) => i === idx ? newColor : b))
+    setPrevColors(colors => colors.map((c, i) => i === idx ? newColor : c))
+  }
+
+  const handleMouseLeave = (idx: number) => {
+    setCardBorders(borders => borders.map((b, i) => i === idx ? 'border-gray-300' : b))
+  }
+
   return (
     <div className="min-h-screen pt-20 pb-16">
       {/* Hero Section */}
@@ -187,34 +215,68 @@ export default function ToursPage() {
 
       {/* Tours Grid */}
       <div className="container mx-auto px-4 space-y-16">
+        {/* Botón para crear tour */}
+        <div className="flex justify-center mb-8">
+          <Link href="/crear-tour">
+            <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold text-2xl px-12 py-6 animate-bounce shadow-lg">
+              Crear mi propio tour
+            </Button>
+          </Link>
+        </div>
+        {/* Separador animado y colorido entre secciones */}
+        <div className="my-16 w-full flex items-center justify-center group">
+          <div className="flex-grow h-1 bg-gradient-to-r from-yellow-400 via-yellow-200 to-transparent rounded-full transition-all duration-500 group-hover:from-yellow-500 group-hover:to-yellow-100"></div>
+          <span className="mx-6 text-2xl font-bold text-yellow-600 tracking-wider transition-all duration-500 group-hover:scale-110">Tours Oficiales</span>
+          <div className="flex-grow h-1 bg-gradient-to-l from-yellow-400 via-yellow-200 to-transparent rounded-full transition-all duration-500 group-hover:from-yellow-500 group-hover:to-yellow-100"></div>
+        </div>
+
         {/* Tours Oficiales */}
         <section>
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-primary">Tours Oficiales</h2>
             <div className="flex items-center gap-2">
               <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
               <span className="text-lg font-medium">Tours verificados y garantizados</span>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {officialTours.map((tour) => (
-              <TourCard key={tour.id} tour={tour} isOfficial={true} />
+            {officialTours.map((tour, idx) => (
+              <TourCard
+                key={tour.id}
+                tour={tour}
+                isOfficial={true}
+                borderClass={cardBorders[idx]}
+                onMouseEnter={() => handleMouseEnter(idx)}
+                onMouseLeave={() => handleMouseLeave(idx)}
+              />
             ))}
           </div>
         </section>
 
+        {/* Separador animado y colorido entre secciones */}
+        <div className="my-16 w-full flex items-center justify-center group">
+          <div className="flex-grow h-1 bg-gradient-to-r from-yellow-400 via-yellow-200 to-transparent rounded-full transition-all duration-500 group-hover:from-yellow-500 group-hover:to-yellow-100"></div>
+          <span className="mx-6 text-2xl font-bold text-yellow-600 tracking-wider transition-all duration-500 group-hover:scale-110">Tours de Usuarios</span>
+          <div className="flex-grow h-1 bg-gradient-to-l from-yellow-400 via-yellow-200 to-transparent rounded-full transition-all duration-500 group-hover:from-yellow-500 group-hover:to-yellow-100"></div>
+        </div>
+
         {/* Tours de Usuarios */}
         <section>
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-primary">Tours de Usuarios</h2>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               <span className="text-lg font-medium">Tours creados por la comunidad</span>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {userTours.map((tour) => (
-              <TourCard key={tour.id} tour={tour} isOfficial={false} />
+            {userTours.map((tour, idx) => (
+              <TourCard
+                key={tour.id}
+                tour={tour}
+                isOfficial={false}
+                borderClass={cardBorders[officialTours.length + idx]}
+                onMouseEnter={() => handleMouseEnter(officialTours.length + idx)}
+                onMouseLeave={() => handleMouseLeave(officialTours.length + idx)}
+              />
             ))}
           </div>
         </section>
@@ -223,17 +285,19 @@ export default function ToursPage() {
   )
 }
 
-function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
+function TourCard({ tour, isOfficial, borderClass = '', onMouseEnter, onMouseLeave }: { tour: any; isOfficial: boolean; borderClass?: string; onMouseEnter?: () => void; onMouseLeave?: () => void }) {
+  // Obtener imágenes de los eventos o la imagen principal
+  const images = tour.events?.length
+    ? tour.events.map((event: any) => ({ src: event.image, alt: event.title }))
+    : [{ src: tour.image, alt: tour.title }];
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg">
+    <Card
+      className={`overflow-hidden transition-all duration-300 hover:shadow-lg border-2 ${borderClass}`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <div className="relative h-52 w-full">
-        <Image
-          src={tour.image}
-          alt={tour.title}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover"
-        />
+        <CarouselImages images={images} />
         {isOfficial && (
           <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded-md text-sm font-medium">
             Oficial
@@ -367,4 +431,4 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
       </CardFooter>
     </Card>
   )
-}
+} 

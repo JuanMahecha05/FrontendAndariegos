@@ -9,8 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useState, useEffect } from "react";
-import { Search, GripVertical, X, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, GripVertical, X, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Info, User } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -34,6 +34,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { useAuth } from '@/hooks/AuthContext';
 
 // Datos de ejemplo para los eventos
 const eventos = [
@@ -192,94 +197,24 @@ const eventos = [
 const formSchema = z.object({
   title: z.string().min(1, "El título es requerido"),
   description: z.string().min(10, "La descripción debe tener al menos 10 caracteres"),
-  startLocation: z.string().min(1, "La ubicación de inicio es requerida"),
-  endLocation: z.string().min(1, "La ubicación final es requerida"),
   events: z.array(z.number()).min(1, "Selecciona al menos un evento"),
   image: z.string().optional(),
 });
 
-function SortableEvent({ id, evento, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: { 
-  id: number; 
-  evento: any; 
-  onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-4 p-4 bg-card rounded-lg mb-2 border shadow-sm"
-    >
-      <div {...attributes} {...listeners} className="cursor-grab">
-        <GripVertical className="h-5 w-5 text-muted-foreground" />
-      </div>
-      <div className="flex-grow relative h-32">
-        <div className="absolute inset-0 w-1/2">
-          <div className="relative w-full h-full">
-            <img
-              src={evento.imagen}
-              alt={evento.nombre}
-              className="w-full h-full object-cover rounded-l-md"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-card" />
-          </div>
-        </div>
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-1/2" />
-          <div className="flex-grow pl-8">
-            <h4 className="font-medium text-lg text-primary">{evento.nombre}</h4>
-            <p className="text-sm text-muted-foreground">
-              {evento.ubicacion} - {evento.duracion}h - ${evento.precio}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="flex-shrink-0 flex gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onMoveUp}
-          disabled={isFirst}
-        >
-          <ArrowUp className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onMoveDown}
-          disabled={isLast}
-        >
-          <ArrowDown className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onRemove}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export default function CrearTour() {
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+  // Redirección si no está autenticado
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    if (!user?.roles?.includes('ORGANIZER')) {
+      router.push('/');
+      return;
+    }
+  }, [isAuthenticated, user, router]);
   const [selectedEvents, setSelectedEvents] = useState<number[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
@@ -288,6 +223,8 @@ export default function CrearTour() {
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9; // 3 rows of 3 events
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -301,12 +238,15 @@ export default function CrearTour() {
     defaultValues: {
       title: "",
       description: "",
-      startLocation: "",
-      endLocation: "",
       events: [],
       image: "",
     },
   });
+
+  const [openGuiaMenuIdx, setOpenGuiaMenuIdx] = useState<number | null>(null);
+  const toggleGuiaMenu = (idx: number) => {
+    setOpenGuiaMenuIdx(prev => (prev === idx ? null : idx));
+  };
 
   useEffect(() => {
     const selectedEventos = eventos.filter(evento => selectedEvents.includes(evento.id));
@@ -354,20 +294,222 @@ export default function CrearTour() {
 
   const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
 
+  // Guías de ejemplo
+  const posiblesGuias = [
+    { id: 1, nombre: 'Guía Juan', experiencia: '5 años', especialidad: 'Cultural' },
+    { id: 2, nombre: 'Guía María', experiencia: '3 años', especialidad: 'Gastronómico' },
+    { id: 3, nombre: 'Guía Carlos', experiencia: '7 años', especialidad: 'Naturaleza' },
+  ];
+
+  // Estado para selección de guías por evento
+  const [guiaPorEvento, setGuiaPorEvento] = useState<any>({});
+  const handleGuiaChange = (eventoIdx: number, guiaId: string) => {
+    setGuiaPorEvento((prev: any) => ({ ...prev, [eventoIdx]: guiaId }));
+  };
+
+  // Estado para el modal de confirmación
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [pendingTour, setPendingTour] = useState<any>(null);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const tourData = {
+    setPendingTour({
       ...values,
       totalPrice,
       totalDuration,
       categories,
       eventSequence: selectedEvents.map(id => eventos.find(e => e.id === id)),
-    };
-    console.log(tourData);
-    // Here you would typically send the data to your backend
+      image: values.image,
+    });
+    setOpenConfirm(true);
+  }
+
+  const handleConfirmReserva = () => {
+    if (!(window as any).eventosReservados) (window as any).eventosReservados = [];
+    (window as any).eventosReservados.push(pendingTour);
+    setOpenConfirm(false);
+    router.push('/eventos-reservados');
+  };
+
+  // Handler para submit fallido
+  const handleInvalid = (errors: any) => {
+    setSubmitAttempted(true);
+    setFormError("Por favor completa todos los campos requeridos y selecciona al menos un evento.");
+    console.log("Errores de validación:", errors);
+  };
+
+  function SortableEvent({ id, evento, onRemove, onMoveUp, onMoveDown, isFirst, isLast, guia, onGuiaClick, guiaMenuOpen, posiblesGuias, onGuiaSelect, idx }: any) {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id });
+
+    const guiaBtnRef = useRef<HTMLButtonElement>(null);
+    const [menuPos, setMenuPos] = useState<{top: number, left: number}>({top: 0, left: 0});
+
+    // Cerrar menú al hacer clic fuera
+    useEffect(() => {
+      if (!guiaMenuOpen) return;
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.guia-menu') && !target.closest('.guia-button')) {
+          onGuiaClick();
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [guiaMenuOpen, onGuiaClick]);
+
+    // Calcular posición del menú a la izquierda del botón
+    useEffect(() => {
+      if (guiaMenuOpen && guiaBtnRef.current) {
+        const rect = guiaBtnRef.current.getBoundingClientRect();
+        const menuWidth = 210;
+        let left = rect.left + window.scrollX - menuWidth;
+        // Si no hay espacio a la izquierda, mostrar a la derecha
+        if (left < 0) {
+          left = rect.right + window.scrollX + 8; // 8px de separación
+        }
+        setMenuPos({
+          top: rect.top + window.scrollY,
+          left,
+        });
+      }
+    }, [guiaMenuOpen]);
+
+    return (
+      <motion.div
+        ref={setNodeRef}
+        style={{ 
+          transform: CSS.Transform.toString(transform), 
+          transition,
+          zIndex: guiaMenuOpen ? 50 : isDragging ? 1 : 0,
+        }}
+        className={`flex items-center gap-4 p-4 bg-card rounded-lg mb-2 border shadow-sm relative ${isDragging ? 'opacity-50' : ''}`}
+      >
+        <div {...attributes} {...listeners} className="cursor-grab touch-none select-none">
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div className="flex-grow relative h-32">
+          <div className="absolute inset-0 w-1/2">
+            <div className="relative w-full h-full">
+              <img
+                src={evento.imagen}
+                alt={evento.nombre}
+                className="w-full h-full object-cover rounded-l-md"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-card" />
+            </div>
+          </div>
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-1/2" />
+            <div className="flex-grow pl-8">
+              <h4 className="font-medium text-lg text-primary">{evento.nombre}</h4>
+              <p className="text-sm text-muted-foreground">
+                {evento.ubicacion} - {evento.duracion}h - ${evento.precio}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mr-2 relative">
+          <div className="flex flex-col items-center">
+            <button
+              type="button"
+              ref={guiaBtnRef}
+              className="guia-button p-2 rounded-full bg-gray-100 hover:bg-yellow-200 transition"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onGuiaClick();
+              }}
+              title="Seleccionar guía"
+            >
+              <User className="h-5 w-5 text-primary" />
+            </button>
+            <span className="text-xs mt-1 text-gray-600 font-medium">{guia ? guia : 'Sin guía'}</span>
+          </div>
+          {guiaMenuOpen && (
+            <motion.div
+              initial={{ x: -40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -40, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="guia-menu absolute right-full -ml-4 top-0 bg-white border rounded shadow-lg p-2 w-52 z-50"
+              style={{ minHeight: 120 }}
+            >
+              <div className="mb-2 font-semibold text-sm">Guía para este evento:</div>
+              <button 
+                className="block w-full text-left px-2 py-1 hover:bg-yellow-100 rounded" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onGuiaSelect("");
+                }}
+              >
+                Sin guía
+              </button>
+              {posiblesGuias.map((guia: any) => (
+                <button 
+                  key={guia.id} 
+                  className="block w-full text-left px-2 py-1 hover:bg-yellow-100 rounded" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onGuiaSelect(guia.nombre);
+                  }}
+                >
+                  {guia.nombre} ({guia.especialidad}, {guia.experiencia})
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </div>
+        <div className="flex-shrink-0 flex gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onMoveUp();
+            }}
+            disabled={isFirst}
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onMoveDown();
+            }}
+            disabled={isLast}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onRemove();
+            }}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </motion.div>
+    );
   }
 
   return (
-    <div className="container mx-auto py-10 mt-16">
+    <div className="container mx-auto py-10 mt-28">
       <Card className="max-w-6xl mx-auto">
         <CardHeader>
           <CardTitle className="text-primary">Crear Nuevo Tour</CardTitle>
@@ -375,8 +517,13 @@ export default function CrearTour() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit, handleInvalid)} className="space-y-8">
               {/* Información básica */}
+              {formError && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-center">
+                  {formError}
+                </div>
+              )}
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-primary">Información del Tour</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -497,7 +644,7 @@ export default function CrearTour() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paginatedEvents.map((evento) => (
+                  {paginatedEvents.map((evento, index) => (
                     <FormField
                       key={evento.id}
                       control={form.control}
@@ -584,27 +731,34 @@ export default function CrearTour() {
                       items={selectedEvents}
                       strategy={verticalListSortingStrategy}
                     >
-                      {selectedEvents.map((eventId, index) => {
-                        const evento = eventos.find(e => e.id === eventId);
-                        if (!evento) return null;
-                        
-                        return (
-                          <SortableEvent
-                            key={eventId}
-                            id={eventId}
-                            evento={evento}
-                            onRemove={() => {
-                              const newEvents = selectedEvents.filter(id => id !== eventId);
-                              setSelectedEvents(newEvents);
-                              form.setValue('events', newEvents);
-                            }}
-                            onMoveUp={() => moveEvent(index, 'up')}
-                            onMoveDown={() => moveEvent(index, 'down')}
-                            isFirst={index === 0}
-                            isLast={index === selectedEvents.length - 1}
-                          />
-                        );
-                      })}
+                      <AnimatePresence>
+                        {selectedEvents.map((eventId, index) => {
+                          const evento = eventos.find(e => e.id === eventId);
+                          if (!evento) return null;
+                          return (
+                            <SortableEvent
+                              key={eventId}
+                              id={eventId}
+                              evento={evento}
+                              onRemove={() => {
+                                const newEvents = selectedEvents.filter(id => id !== eventId);
+                                setSelectedEvents(newEvents);
+                                form.setValue('events', newEvents);
+                              }}
+                              onMoveUp={() => moveEvent(index, 'up')}
+                              onMoveDown={() => moveEvent(index, 'down')}
+                              isFirst={index === 0}
+                              isLast={index === selectedEvents.length - 1}
+                              guia={guiaPorEvento[index] || ''}
+                              onGuiaClick={() => toggleGuiaMenu(index)}
+                              guiaMenuOpen={openGuiaMenuIdx === index}
+                              posiblesGuias={posiblesGuias}
+                              onGuiaSelect={(guia: string) => { handleGuiaChange(index, guia); toggleGuiaMenu(index); }}
+                              idx={index}
+                            />
+                          );
+                        })}
+                      </AnimatePresence>
                     </SortableContext>
                   </DndContext>
                 </div>
@@ -628,11 +782,25 @@ export default function CrearTour() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full">Crear Tour</Button>
+              <Button type="submit" className="w-full">Reservar Tour</Button>
             </form>
           </Form>
         </CardContent>
       </Card>
+      <Dialog open={openConfirm} onOpenChange={setOpenConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Estás seguro que quieres reservar este tour?</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-center">
+            <p className="text-lg">Esta acción reservará el tour y lo agregará a tus eventos reservados.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenConfirm(false)}>Cancelar</Button>
+            <Button variant="default" onClick={handleConfirmReserva}>Confirmar Reserva</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
