@@ -129,7 +129,7 @@ export default function EventosPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {eventos.map((evento) => (
-            <Card key={evento.id} className="overflow-hidden transition-all duration-300 hover:shadow-lg">
+            <Card key={evento.id} className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
               <div className="relative h-52 w-full">
                 <Image
                   src={evento.image}
@@ -169,12 +169,12 @@ export default function EventosPage() {
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="mt-auto">
                 <Button 
                   className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
                   onClick={() => handleReservar(evento.id)}
                 >
-                  Reservar
+                  Crear Tour
                 </Button>
               </CardFooter>
             </Card>
