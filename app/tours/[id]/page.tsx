@@ -1,5 +1,3 @@
-//'use client'
-
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from 'next/link'
@@ -24,8 +22,12 @@ import {
   DialogClose
 } from "@/components/ui/dialog"
 
-export default async function TourDetailPage({ params }: { params: { id: string } }) {
-  const { id } = await params; // <-- ¡Esto evita el error!
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function TourDetailPage({ params }: Props) {
+  const { id } = await Promise.resolve(params).then(p => p);
   const tourId = parseInt(id);
   const tour = [...officialTours, ...userTours].find(t => t.id === tourId)
 
