@@ -4,7 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
+import { Clock, MapPin, Star, Users, Calendar, MoreHorizontal, ChevronUp, ChevronDown, PlusCircle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,17 @@ import {
   DialogTrigger,
   DialogClose
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { officialTours, userTours } from '@/data/tours'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { useAuth } from '@/hooks/AuthContext'
 
 const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
 function getRandomNeonColor(exclude: string): string {
@@ -24,6 +33,25 @@ function getRandomNeonColor(exclude: string): string {
 }
 
 export default function ToursPage() {
+  const [tours, setTours] = useState(officialTours);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const local = localStorage.getItem('tours');
+      if (local) {
+        setTours(JSON.parse(local));
+      }
+    }
+  }, []);
+
+  const handleDeleteTour = (id: number) => {
+    if (typeof window !== 'undefined') {
+      const updatedTours = tours.filter(tour => tour.id !== id);
+      localStorage.setItem('tours', JSON.stringify(updatedTours));
+      setTours(updatedTours);
+    }
+  };
 
   return (
     <div className="min-h-screen pt-20 pb-16">
@@ -48,17 +76,21 @@ export default function ToursPage() {
       {/* Tours Grid */}
       <div className="container mx-auto px-4 space-y-16">
         {/* Tours Oficiales */}
-        <section>
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-primary dark:text-white">Tours</h2>
-            <div className="flex items-center gap-2">
-              <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-              <span className="text-lg font-medium">Tours verificados y garantizados</span>
-            </div>
+        {user?.roles.includes('ORGANIZER') && (
+          <div className="mb-10 flex justify-center">
+            <Button asChild size="lg" className="px-8 py-4 text-lg font-semibold animate-bounce">
+              <Link href="/crear-tour">Crear Tour</Link>
+            </Button>
           </div>
+        )}
+        <section>
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-primary dark:text-white">Tours</h2>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {officialTours.map((tour) => (
-              <TourCard key={tour.id} tour={tour} isOfficial={true} />
+            {tours.map((tour) => (
+              <TourCard key={tour.id} tour={tour} isOfficial={true} onDelete={handleDeleteTour} />
             ))}
           </div>
         </section>
@@ -67,9 +99,10 @@ export default function ToursPage() {
   )
 }
 
-function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
+function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boolean; onDelete: (id: number) => void }) {
   const [neon, setNeon] = React.useState('neon-yellow');
   const [isHovered, setIsHovered] = React.useState(false);
+  const { user } = useAuth();
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -136,35 +169,79 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
           }).format(tour.price)}
         </div>
         <div className="flex gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="default">Agendar Tour</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Confirmar Reserva</DialogTitle>
-                <DialogDescription>
-                  ¿Estás seguro de que quieres agendar el tour <strong>{tour.title}</strong> por {new Intl.NumberFormat('es-CO', {
-                    style: 'currency',
-                    currency: 'COP',
-                    maximumFractionDigits: 0
-                  }).format(tour.price)}?
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex justify-end gap-2 pt-4">
-                <DialogClose asChild>
-                  <Button variant="outline">Cancelar</Button>
-                </DialogClose>
-                <Link href={`/agendar-tour/${tour.id}`}>
-                  <Button>Confirmar</Button>
-                </Link>
-              </div>
-            </DialogContent>
-          </Dialog>
+          {(!user || !user.roles.includes('ORGANIZER')) && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="default">Agendar Tour</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirmar Reserva</DialogTitle>
+                  <DialogDescription>
+                    ¿Estás seguro de que quieres agendar el tour <strong>{tour.title}</strong> por {new Intl.NumberFormat('es-CO', {
+                      style: 'currency',
+                      currency: 'COP',
+                      maximumFractionDigits: 0
+                    }).format(tour.price)}?
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end gap-2 pt-4">
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancelar</Button>
+                  </DialogClose>
+                  <Link href={`/agendar-tour/${tour.id}`}>
+                    <Button>Confirmar</Button>
+                  </Link>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
 
           <Link href={`/tours/${tour.id}`}>
             <Button variant="outline">Ver detalles</Button>
           </Link>
+
+          {user?.roles.includes('ORGANIZER') && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Administrar Tour</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={`/editar-tour/${tour.id}`}>
+                    Editar Tour
+                  </Link>
+                </DropdownMenuItem>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem asChild>
+                      <Button variant="ghost" className="w-full justify-start text-left font-normal text-red-600 hover:bg-red-50 focus:bg-red-50">
+                        Eliminar
+                      </Button>
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Confirmar Eliminación</DialogTitle>
+                      <DialogDescription>
+                        ¿Estás seguro de que deseas eliminar el tour <strong>{tour.title}</strong>? Esta acción no se puede deshacer.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-2 pt-4">
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancelar</Button>
+                      </DialogClose>
+                      <Button variant="destructive" onClick={() => onDelete(tour.id)}>Eliminar</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </CardFooter>
     </Card>

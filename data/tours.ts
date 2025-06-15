@@ -6,6 +6,7 @@ export interface TourEvent {
   time: string
   description: string
   image?: string
+  location: string
 }
 
 export interface BaseTour {
@@ -43,19 +44,22 @@ export const officialTours: OfficialTour[] = [
         title: 'Visita al Museo Botero',
         time: '10:00 - 11:30',
         description: 'Recorrido por la colección de arte del maestro Fernando Botero',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'La Candelaria'
       },
       {
         title: 'Tour por la Plaza de Bolívar',
         time: '11:45 - 12:45',
         description: 'Conoce la historia y arquitectura de la plaza principal de Bogotá',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'La Candelaria'
       },
       {
         title: 'Visita a la Catedral Primada',
         time: '13:00 - 14:00',
         description: 'Explora la catedral más importante de Colombia',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'La Candelaria'
       }
     ]
   },
@@ -73,13 +77,15 @@ export const officialTours: OfficialTour[] = [
         title: 'Taller de Grafiti',
         time: '14:00 - 15:30',
         description: 'Aprende las técnicas básicas del arte urbano',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Centro y Chapinero'
       },
       {
         title: 'Recorrido por Murales',
         time: '15:45 - 17:00',
         description: 'Visita los murales más emblemáticos de la ciudad',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Centro y Chapinero'
       }
     ]
   },
@@ -97,19 +103,22 @@ export const officialTours: OfficialTour[] = [
         title: 'Mercado de Paloquemao',
         time: '09:00 - 10:30',
         description: 'Recorrido por el mercado más tradicional de Bogotá',
-        image: 'https://images.pexels.com/photos/13447155/pexels-photo-13447155.jpeg'
+        image: 'https://images.pexels.com/photos/13447155/pexels-photo-13447155.jpeg',
+        location: 'Paloquemao y Centro'
       },
       {
         title: 'Degustación de Frutas',
         time: '10:45 - 11:45',
         description: 'Prueba las frutas exóticas de Colombia',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Paloquemao y Centro'
       },
       {
         title: 'Almuerzo Típico',
         time: '12:00 - 13:30',
         description: 'Disfruta de los platos más representativos de la gastronomía bogotana',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Paloquemao y Centro'
       }
     ]
   }
@@ -133,13 +142,15 @@ export const userTours: UserTour[] = [
         title: 'Subida a Monserrate',
         time: '09:00 - 11:00',
         description: 'Ascenso al cerro más emblemático de Bogotá',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Monserrate y Centro'
       },
       {
         title: 'Visita al Santuario',
         time: '11:15 - 12:15',
         description: 'Conoce la historia y arquitectura del santuario',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Monserrate y Centro'
       }
     ]
   },
@@ -159,7 +170,8 @@ export const userTours: UserTour[] = [
         title: 'Recorrido por Bares',
         time: '20:00 - 23:00',
         description: 'Visita los bares más emblemáticos de la zona',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Zona G y Chapinero'
       }
     ]
   },
@@ -179,13 +191,15 @@ export const userTours: UserTour[] = [
         title: 'Senderismo',
         time: '08:00 - 12:00',
         description: 'Recorrido por senderos naturales',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Alrededores de Bogotá'
       },
       {
         title: 'Almuerzo Campestre',
         time: '12:30 - 14:00',
         description: 'Disfruta de un almuerzo en la naturaleza',
-        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg'
+        image: 'https://images.pexels.com/photos/2161467/pexels-photo-2161467.jpeg',
+        location: 'Alrededores de Bogotá'
       }
     ]
   }

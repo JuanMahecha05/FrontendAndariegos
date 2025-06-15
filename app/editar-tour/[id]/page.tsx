@@ -10,9 +10,9 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
-import { Search, GripVertical, X, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Info, Trash2 } from "lucide-react";
+import { Search, GripVertical, X, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { UserTour, userTours, officialTours } from "@/data/tours";
+import { officialTours } from "@/data/tours";
 import {
   DndContext,
   closestCenter,
@@ -23,27 +23,13 @@ import {
   DragEndEvent,
 } from "@dnd-kit/core";
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React from 'react';
 
 interface Horario {
   fecha: string;
@@ -239,6 +225,8 @@ const formSchema = z.object({
   events: z.array(z.number()).min(1, "Selecciona al menos un evento"),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 const SortableEvent = ({ id, evento, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: { 
   id: number; 
   evento: Evento; 
@@ -249,18 +237,10 @@ const SortableEvent = ({ id, evento, onRemove, onMoveUp, onMoveDown, isFirst, is
   isLast: boolean;
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
-  const [showHorarios, setShowHorarios] = useState(false);
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
-
-  const diasSemana = [
-    "Domingo", "Lunes", "Martes", "Miércoles", 
-    "Jueves", "Viernes", "Sábado"
-  ];
-
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-4 p-4 bg-card rounded-lg mb-2 border shadow-sm">
       <div {...attributes} {...listeners} className="cursor-grab">
@@ -290,14 +270,6 @@ const SortableEvent = ({ id, evento, onRemove, onMoveUp, onMoveDown, isFirst, is
       <div className="flex gap-2">
         <Button
           type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setShowHorarios(true)}
-        >
-          Ver Horarios
-        </Button>
-        <Button
-          type="button"
           variant="ghost"
           size="icon"
           onClick={onMoveUp}
@@ -323,55 +295,21 @@ const SortableEvent = ({ id, evento, onRemove, onMoveUp, onMoveDown, isFirst, is
           <X className="h-4 w-4" />
         </Button>
       </div>
-
-      <Dialog open={showHorarios} onOpenChange={setShowHorarios}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Horarios Disponibles - {evento.nombre}</DialogTitle>
-            <DialogDescription>
-              Horarios disponibles para cada día de la semana
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {diasSemana.map((dia, index) => {
-              const horariosDelDia = evento.horarios.filter(h => 
-                new Date(h.fecha).getDay() === index
-              );
-              
-              return (
-                <div key={dia} className="space-y-2">
-                  <h4 className="font-medium">{dia}</h4>
-                  {horariosDelDia.length > 0 ? (
-                    <div className="space-y-1">
-                      {horariosDelDia.map((horario, idx) => (
-                        <div key={idx} className="text-sm text-muted-foreground">
-                          {horario.inicio} - {horario.fin}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No hay horarios disponibles</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowHorarios(false)}>Cerrar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
 
-const CrearTour = () => {
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default function EditarTour({ params }: Props) {
+  const { id } = React.use(params);
   const router = useRouter();
   const [selectedEvents, setSelectedEvents] = useState<Evento[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchDate, setSearchDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
 
@@ -382,7 +320,7 @@ const CrearTour = () => {
     })
   );
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
@@ -392,25 +330,53 @@ const CrearTour = () => {
   });
 
   useEffect(() => {
-    const selectedEventos = eventos.filter(evento => selectedEvents.includes(evento));
-    const newTotalPrice = selectedEventos.reduce((sum, evento) => sum + evento.precio, 0);
-    const newTotalDuration = selectedEventos.reduce((sum, evento) => sum + evento.duracion, 0);
+    // Cargar el tour existente
+    let tours = officialTours;
+    if (typeof window !== 'undefined') {
+      const local = localStorage.getItem('tours');
+      if (local) {
+        tours = JSON.parse(local);
+      }
+    }
+    const tour = tours.find(t => t.id === parseInt(id));
     
+    if (tour) {
+      // Cargar los datos del tour en el formulario
+      const eventIds = tour.events.map(e => {
+        const evento = eventos.find(ev => ev.nombre === e.title);
+        return evento ? evento.id : 0;
+      }).filter(id => id !== 0);
+
+      form.reset({
+        title: tour.title,
+        description: tour.description,
+        events: eventIds,
+      });
+
+      // Cargar los eventos seleccionados
+      const selectedEventos = tour.events.map(e => 
+        eventos.find(ev => ev.nombre === e.title)
+      ).filter((evento): evento is Evento => evento !== undefined);
+      
+      setSelectedEvents(selectedEventos);
+    }
+  }, [id, form]);
+
+  useEffect(() => {
+    const newTotalPrice = selectedEvents.reduce((sum, evento) => sum + evento.precio, 0);
+    const newTotalDuration = selectedEvents.reduce((sum, evento) => sum + evento.duracion, 0);
     setTotalPrice(newTotalPrice);
     setTotalDuration(newTotalDuration);
   }, [selectedEvents]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
     if (over && active.id !== over.id) {
       const oldIndex = selectedEvents.findIndex(e => e.id === active.id);
       const newIndex = selectedEvents.findIndex(e => e.id === over.id);
-      
       const newEvents = [...selectedEvents];
       const [movedEvent] = newEvents.splice(oldIndex, 1);
       newEvents.splice(newIndex, 0, movedEvent);
-      
       setSelectedEvents(newEvents);
       form.setValue('events', newEvents.map(e => e.id));
     }
@@ -420,19 +386,15 @@ const CrearTour = () => {
     const newEvents = [...selectedEvents];
     const event = newEvents[index];
     const newIndex = direction === 'up' ? index - 1 : index + 1;
-    
     newEvents.splice(index, 1);
     newEvents.splice(newIndex, 0, event);
-    
     setSelectedEvents(newEvents);
     form.setValue('events', newEvents.map(e => e.id));
   };
 
-  const filteredEvents = eventos.filter(evento => {
-    const matchesSearch = evento.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate = !searchDate || evento.horarios.some(h => h.fecha.includes(searchDate));
-    return matchesSearch && matchesDate;
-  });
+  const filteredEvents = eventos.filter(evento =>
+    evento.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const paginatedEvents = filteredEvents.slice(
     (currentPage - 1) * eventsPerPage,
@@ -441,22 +403,20 @@ const CrearTour = () => {
 
   const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     try {
-      // Leer tours existentes de localStorage o usar los oficiales por defecto
-      let storedTours = [];
+      // Leer tours existentes
+      let tours = officialTours;
       if (typeof window !== 'undefined') {
         const local = localStorage.getItem('tours');
-        storedTours = local ? JSON.parse(local) : officialTours;
-      } else {
-        storedTours = officialTours;
+        if (local) {
+          tours = JSON.parse(local);
+        }
       }
-      // Encontrar el ID más alto actual y sumarle 1 para el nuevo tour
-      const maxId = Math.max(...storedTours.map((tour: { id: number }) => tour.id), 0);
-      const newId = maxId + 1;
-      // Crear el tour con la estructura de OfficialTour
-      const newTour = {
-        id: newId,
+
+      // Actualizar el tour existente
+      const updatedTour = {
+        id: parseInt(id),
         title: values.title,
         description: values.description,
         image: selectedEvents[0]?.imagen || "/images/default-tour.jpg",
@@ -472,14 +432,19 @@ const CrearTour = () => {
           location: evento.ubicacion
         }))
       };
-      // Guardar en localStorage
+
+      // Actualizar en localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('tours', JSON.stringify([...storedTours, newTour]));
+        const updatedTours = tours.map(t => 
+          t.id === parseInt(id) ? updatedTour : t
+        );
+        localStorage.setItem('tours', JSON.stringify(updatedTours));
       }
-      // Redirigir a la página específica del tour creado
-      router.push(`/tours/${newId}`);
+
+      // Redirigir a la página de detalles del tour
+      router.push(`/tours/${id}`);
     } catch (error) {
-      console.error("Error al crear el tour:", error);
+      console.error("Error al actualizar el tour:", error);
     }
   };
 
@@ -487,8 +452,20 @@ const CrearTour = () => {
     <div className="container mx-auto py-10 mt-16">
       <Card className="max-w-6xl mx-auto">
         <CardHeader>
-          <CardTitle className="text-primary">Crear Nuevo Tour</CardTitle>
-          <CardDescription>Complete los detalles para crear un nuevo tour turístico.</CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="text-primary">Editar Tour</CardTitle>
+              <CardDescription>Modifica los detalles del tour turístico.</CardDescription>
+            </div>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -523,25 +500,18 @@ const CrearTour = () => {
                   </FormItem>
                 )}
               />
+
               <div className="space-y-6">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold">Eventos del Tour</h3>
-                    <div className="flex gap-2">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Buscar por nombre..."
-                          className="pl-8"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        type="date"
-                        value={searchDate}
-                        onChange={(e) => setSearchDate(e.target.value)}
-                        className="w-[150px]"
+                        placeholder="Buscar por nombre..."
+                        className="pl-8"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                       />
                     </div>
                   </div>
@@ -580,13 +550,11 @@ const CrearTour = () => {
                                 </div>
                                 <div className="space-y-1 leading-none">
                                   <FormLabel>{evento.nombre}</FormLabel>
-                                  <FormDescription>
+                                  <div className="text-sm text-muted-foreground">
                                     {evento.ubicacion}
                                     <br />
                                     Duración: {evento.duracion}h - Precio: ${evento.precio}
-                                    <br />
-                                    Horarios disponibles: {evento.horarios.length} días
-                                  </FormDescription>
+                                  </div>
                                 </div>
                               </div>
                             </FormItem>
@@ -671,13 +639,11 @@ const CrearTour = () => {
                 </div>
               )}
 
-              <Button type="submit" className="w-full">Crear Tour</Button>
+              <Button type="submit" className="w-full">Guardar Cambios</Button>
             </form>
           </Form>
         </CardContent>
       </Card>
     </div>
   );
-};
-
-export default CrearTour;
+} 
