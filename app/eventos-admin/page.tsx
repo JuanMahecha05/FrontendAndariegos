@@ -12,17 +12,15 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Evento {
   id: number;
-  title: string;
+  name: string;
   description: string;
-  image: string;
-  duration: string;
-  location: string;
-  rating: number;
-  maxParticipants: number;
+  image1: string;
   price: number;
   date: string;
-  time: string;
-  status: string;
+  city: string;
+  address: string;
+  availableSpots: number;
+  days?: { day: string; times: string[] }[];
   inscritos?: {
     id: number;
     name: string;
@@ -44,65 +42,20 @@ export default function EventosAdminPage() {
       return;
     }
 
-    if (!user?.roles.includes('ORGANIZER')) {
+    if (!user?.roles?.includes('ORGANIZER')) {
       router.push('/');
       return;
     }
 
-    // Cargar todos los eventos
-    const todosLosEventos: Evento[] = [
-      {
-        id: 1,
-        title: 'Visita Guiada al Museo del Oro',
-        description: 'Explora la colección más grande de orfebrería prehispánica del mundo con un experto.',
-        image: 'https://images.pexels.com/photos/2372978/pexels-photo-2372978.jpeg',
-        duration: '2 horas',
-        location: 'Museo del Oro, La Candelaria',
-        rating: 4.9,
-        maxParticipants: 15,
-        price: 35000,
-        date: '2024-04-15',
-        time: '10:00',
-        status: 'active',
-        inscritos: [
-          { id: 1, name: 'Juan Pérez', email: 'juan@example.com' },
-          { id: 2, name: 'María García', email: 'maria@example.com' }
-        ]
-      },
-      {
-        id: 2,
-        title: 'Recorrido Gastronómico Plaza de Paloquemao',
-        description: 'Descubre los sabores y aromas de la gastronomía colombiana en el mercado más tradicional.',
-        image: 'https://images.pexels.com/photos/2338015/pexels-photo-2338015.jpeg',
-        duration: '3 horas',
-        location: 'Plaza de Paloquemao',
-        rating: 4.8,
-        maxParticipants: 8,
-        price: 45000,
-        date: '2024-04-16',
-        time: '09:00',
-        status: 'active',
-        inscritos: [
-          { id: 3, name: 'Carlos Rodríguez', email: 'carlos@example.com' }
-        ]
-      },
-      {
-        id: 3,
-        title: 'Taller de Arte Urbano',
-        description: 'Aprende sobre el grafiti y el arte urbano mientras creas tu propia obra.',
-        image: 'https://images.pexels.com/photos/14442358/pexels-photo-14442358.jpeg',
-        duration: '2.5 horas',
-        location: 'La Candelaria',
-        rating: 4.7,
-        maxParticipants: 10,
-        price: 40000,
-        date: '2024-04-17',
-        time: '14:00',
-        status: 'active',
-        inscritos: []
-      }
-    ];
-    setEventos(todosLosEventos);
+    const storedEventos = localStorage.getItem("eventos");
+    if (storedEventos) {
+      const parsed = JSON.parse(storedEventos).map((e: any, index: number) => ({
+        ...e,
+        id: index + 1,
+        inscritos: [],
+      }));
+      setEventos(parsed);
+    }
     setLoading(false);
   }, [isAuthenticated, user, router]);
 
@@ -113,8 +66,9 @@ export default function EventosAdminPage() {
   const handleDelete = async (eventId: number) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este evento?')) {
       try {
-        // Aquí iría la llamada a la API para eliminar el evento
-        setEventos(eventos.filter(evento => evento.id !== eventId));
+        const updated = eventos.filter(evento => evento.id !== eventId);
+        setEventos(updated);
+        localStorage.setItem("eventos", JSON.stringify(updated));
         toast({
           title: 'Evento eliminado',
           description: 'El evento ha sido eliminado exitosamente.',
@@ -144,21 +98,8 @@ export default function EventosAdminPage() {
     );
   }
 
-  if (!user || !user.roles.includes('ORGANIZER')) {
-    return (
-      <div className="min-h-screen pt-20 pb-16 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Acceso no autorizado</h1>
-          <p className="text-gray-600 mb-4">Solo los organizadores pueden acceder a esta página.</p>
-          <Button onClick={() => router.push('/')}>Volver al inicio</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen pt-20 pb-16">
-      {/* Hero Section */}
       <div className="relative h-[300px] mb-16">
         <Image
           src="https://images.pexels.com/photos/2372978/pexels-photo-2372978.jpeg"
@@ -189,8 +130,8 @@ export default function EventosAdminPage() {
               <div className="flex flex-col md:flex-row">
                 <div className="relative h-48 md:h-auto md:w-1/3">
                   <Image
-                    src={evento.image}
-                    alt={evento.title}
+                    src={evento.image1}
+                    alt={evento.name}
                     fill
                     className="object-cover"
                   />
@@ -199,12 +140,12 @@ export default function EventosAdminPage() {
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-2xl">{evento.title}</CardTitle>
+                        <CardTitle className="text-2xl">{evento.name}</CardTitle>
                         <CardDescription className="mt-2">{evento.description}</CardDescription>
                       </div>
                       <div className="flex items-center">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                        <span className="text-sm font-medium">{evento.rating}</span>
+                        <span className="text-sm font-medium">4.8</span>
                       </div>
                     </div>
                   </CardHeader>
@@ -213,31 +154,39 @@ export default function EventosAdminPage() {
                       <div className="space-y-3">
                         <div className="flex items-center text-sm text-gray-500">
                           <Calendar className="h-4 w-4 mr-2" />
-                          <span>{evento.date}</span>
+                          <span>{evento.date || 'Sin fecha'}</span>
                         </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Clock className="h-4 w-4 mr-2" />
-                          <span>{evento.time}</span>
+                        <div className="flex items-start text-sm text-gray-500">
+                          <Clock className="h-4 w-4 mr-2 mt-1" />
+                          <div>
+                            {evento.days && evento.days.length > 0 ? (
+                              <ul className="list-disc ml-4">
+                                {evento.days.map((dayObj, index) => (
+                                  <li key={index}>
+                                    {dayObj.day}: {dayObj.times.join(", ")}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <span>–</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-center text-sm text-gray-500">
                           <MapPin className="h-4 w-4 mr-2" />
-                          <span>{evento.location}</span>
+                          <span>{evento.city}, {evento.address}</span>
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <Users className="h-4 w-4 mr-2" />
-                          <span>{evento.inscritos?.length || 0} / {evento.maxParticipants} participantes</span>
+                          <span>{evento.inscritos?.length || 0} / {evento.availableSpots || '–'} participantes</span>
                         </div>
                       </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={() => toggleExpandirEvento(evento.id)}
-                      className="flex items-center"
-                    >
+                    <Button variant="outline" onClick={() => toggleExpandirEvento(evento.id)} className="flex items-center">
                       {eventoExpandido === evento.id ? (
                         <>
                           Ocultar inscritos <ChevronUp className="ml-2 h-4 w-4" />
@@ -255,8 +204,6 @@ export default function EventosAdminPage() {
                   </CardFooter>
                 </div>
               </div>
-              
-              {/* Sección de inscritos */}
               {eventoExpandido === evento.id && (
                 <div className="border-t p-4">
                   <h3 className="text-lg font-semibold mb-4">Participantes inscritos</h3>
@@ -280,4 +227,4 @@ export default function EventosAdminPage() {
       </div>
     </div>
   );
-} 
+}
