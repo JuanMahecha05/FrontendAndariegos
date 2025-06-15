@@ -47,7 +47,7 @@ export default function RegisterPage() {
           <div className="max-w-md text-white">
             <h2 className="text-3xl font-bold mb-4">Únete a Andariegos</h2>
             <p className="text-lg">
-              Al registrarte podrás reservar tours personalizados, guardar tus experiencias favoritas y recibir recomendaciones exclusivas para tu viaje a Bogotá.
+              Al registrarte podrás agendar tours personalizados, guardar tus experiencias favoritas y recibir recomendaciones exclusivas para tu viaje a Bogotá.
             </p>
           </div>
         </div>

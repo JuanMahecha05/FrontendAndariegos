@@ -1,4 +1,5 @@
 "use client";
+import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,82 @@ import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
 import { useAuth } from '@/hooks/AuthContext'
 import { useToast } from '@/components/ui/use-toast'
 import { useRouter } from "next/navigation"
+
+const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
+function getRandomNeonColor(exclude: string): string {
+  const filtered = neonColors.filter(c => c !== exclude);
+  return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
+function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (id: number) => void }) {
+  const [neon, setNeon] = React.useState('neon-yellow');
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    setNeon(prev => getRandomNeonColor(prev));
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  return (
+    <Card
+      className={`overflow-hidden transition-all duration-200 border-2 border-gray-300 ${isHovered ? neon : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="relative h-52 w-full">
+        <Image
+          src={evento.image}
+          alt={evento.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover"
+        />
+      </div>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-xl">{evento.title}</CardTitle>
+          <div className="flex items-center">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+            <span className="text-sm font-medium">{evento.rating}</span>
+          </div>
+        </div>
+        <CardDescription>{evento.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center text-sm text-gray-500">
+            <Calendar className="h-4 w-4 mr-2" />
+            <span>{evento.date}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <Clock className="h-4 w-4 mr-2" />
+            <span>{evento.time}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <MapPin className="h-4 w-4 mr-2" />
+            <span>{evento.location}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <Users className="h-4 w-4 mr-2" />
+            <span>Máximo {evento.maxParticipants} participantes</span>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button 
+          className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+          onClick={() => onAgendar(evento.id)}
+        >
+          Agendar
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
 
 export default function EventosPage() {
   const { toast } = useToast();
@@ -55,11 +132,11 @@ export default function EventosPage() {
     }
   ]
 
-  const handleReservar = (eventoId: number) => {
+  const handleAgendar = (eventoId: number) => {
     if (!isAuthenticated) {
       toast({
         title: "Inicia sesión",
-        description: "Debes iniciar sesión para reservar eventos",
+        description: "Debes iniciar sesión para agendar eventos",
         variant: "destructive",
       });
       setTimeout(() => {
@@ -129,55 +206,7 @@ export default function EventosPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {eventos.map((evento) => (
-            <Card key={evento.id} className="overflow-hidden transition-all duration-300 hover:shadow-lg">
-              <div className="relative h-52 w-full">
-                <Image
-                  src={evento.image}
-                  alt={evento.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover"
-                />
-              </div>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl">{evento.title}</CardTitle>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">{evento.rating}</span>
-                  </div>
-                </div>
-                <CardDescription>{evento.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <span>{evento.date}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span>{evento.time}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    <span>{evento.location}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Users className="h-4 w-4 mr-2" />
-                    <span>Máximo {evento.maxParticipants} participantes</span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
-                  onClick={() => handleReservar(evento.id)}
-                >
-                  Reservar
-                </Button>
-              </CardFooter>
-            </Card>
+            <EventoCard key={evento.id} evento={evento} onAgendar={handleAgendar} />
           ))}
         </div>
       </div>

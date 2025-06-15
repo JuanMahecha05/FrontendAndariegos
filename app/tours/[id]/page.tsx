@@ -63,13 +63,13 @@ export default async function TourDetailPage({ params }: Props) {
         {/* Dialog para Confirmar Reserva */}
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="default">Reservar Tour</Button>
+            <Button variant="default">Agendar Tour</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirmar Reserva</DialogTitle>
               <DialogDescription>
-                ¿Estás seguro de que deseas reservar <strong>{tour.title}</strong> por{" "}
+                ¿Estás seguro de que deseas agendar <strong>{tour.title}</strong> por{" "}
                 {new Intl.NumberFormat("es-CO", {
                   style: "currency",
                   currency: "COP",
@@ -83,7 +83,7 @@ export default async function TourDetailPage({ params }: Props) {
                 <Button variant="outline">Cancelar</Button>
               </DialogClose>
               <Button asChild>
-                <Link href={`/reservar-tour/${tour.id}`}>Confirmar</Link>
+                <Link href={`/agendar-tour/${tour.id}`}>Confirmar</Link>
               </Button>
             </div>
           </DialogContent>

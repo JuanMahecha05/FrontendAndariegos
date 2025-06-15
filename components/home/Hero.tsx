@@ -10,7 +10,7 @@ export function Hero() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
 
-  const handleReserve = () => {
+  const handleAgendar = () => {
     if (!isAuthenticated) {
       router.push('/login');
     } else {
@@ -28,7 +28,6 @@ export function Hero() {
 
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image with darker overlay */}
       <div 
         className="absolute inset-0 z-0" 
         style={{
@@ -36,11 +35,10 @@ export function Hero() {
           backgroundPosition: 'center',
           backgroundSize: 'cover',
           backgroundRepeat: 'no-repeat',
-          filter: 'brightness(0.3)' // Darkened overlay for better text contrast
+          filter: 'brightness(0.3)' 
         }}
       />
       
-      {/* Scroll indicator with Colombian flag colors */}
       <div className="absolute bottom-8 left-0 right-0 mx-auto flex flex-col items-center animate-bounce">
         <div className="flex space-x-1 mb-2">
           <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
@@ -72,9 +70,9 @@ export function Hero() {
             <Button 
               size="lg" 
               className="text-lg px-8 py-6 bg-yellow-500 hover:bg-yellow-600 text-white transition-colors"
-              onClick={handleReserve}
+              onClick={handleAgendar}
             >
-              Reserva tu tour
+              Agenda tu tour
               <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 

@@ -17,7 +17,7 @@ export default function LoginPage() {
           <div className="max-w-md text-white">
             <h2 className="text-3xl font-bold mb-4">Bienvenido de nuevo a Andariegos</h2>
             <p className="text-lg text-blue-100">
-              Accede a tu cuenta para reservar tours, crear experiencias personalizadas y administrar tus itinerarios en Bogotá.
+              Accede a tu cuenta para agendar tours, crear experiencias personalizadas y administrar tus itinerarios en Bogotá.
             </p>
           </div>
         </div>

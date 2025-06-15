@@ -1,3 +1,5 @@
+'use client';
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -13,6 +15,13 @@ import {
   DialogClose
 } from "@/components/ui/dialog"
 import { officialTours, userTours } from '@/data/tours'
+import React from 'react'
+
+const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
+function getRandomNeonColor(exclude: string): string {
+  const filtered = neonColors.filter(c => c !== exclude);
+  return filtered[Math.floor(Math.random() * filtered.length)];
+}
 
 export default function ToursPage() {
 
@@ -41,7 +50,7 @@ export default function ToursPage() {
         {/* Tours Oficiales */}
         <section>
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-primary dark:text-white">Tours Oficiales</h2>
+            <h2 className="text-3xl font-bold text-primary dark:text-white">Tours</h2>
             <div className="flex items-center gap-2">
               <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
               <span className="text-lg font-medium">Tours verificados y garantizados</span>
@@ -53,30 +62,30 @@ export default function ToursPage() {
             ))}
           </div>
         </section>
-
-        {/* Tours de Usuarios */}
-        <section>
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold text-primary dark:text-white">Tours de Usuarios</h2>
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <span className="text-lg font-medium">Tours creados por la comunidad</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {userTours.map((tour) => (
-              <TourCard key={tour.id} tour={tour} isOfficial={false} />
-            ))}
-          </div>
-        </section>
       </div>
     </div>
   )
 }
 
 function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
+  const [neon, setNeon] = React.useState('neon-yellow');
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    setNeon(prev => getRandomNeonColor(prev));
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg">
+    <Card
+      className={`overflow-hidden transition-all duration-200 border-2 border-gray-300 ${isHovered ? neon : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="relative h-52 w-full">
         <Image
           src={tour.image}
@@ -85,11 +94,6 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover"
         />
-        {isOfficial && (
-          <div className="absolute top-2 right-2 bg-primary text-white px-2 py-1 rounded-md text-sm font-medium">
-            Oficial
-          </div>
-        )}
       </div>
       <CardHeader>
         <div className="flex justify-between items-start">
@@ -111,12 +115,6 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
             <MapPin className="h-4 w-4 mr-2" />
             <span>{tour.location}</span>
           </div>
-          {!isOfficial && (
-            <div className="flex items-center text-sm text-gray-500">
-              <Users className="h-4 w-4 mr-2" />
-              <span>Creado por {tour.creator} • {tour.creatorRating} ⭐</span>
-            </div>
-          )}
           <div className="mt-4">
             <h4 className="font-semibold mb-2">Eventos incluidos:</h4>
             <ul className="space-y-2">
@@ -140,13 +138,13 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
         <div className="flex gap-2">
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="default">Reservar Tour</Button>
+              <Button variant="default">Agendar Tour</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Confirmar Reserva</DialogTitle>
                 <DialogDescription>
-                  ¿Estás seguro de que quieres reservar el tour <strong>{tour.title}</strong> por {new Intl.NumberFormat('es-CO', {
+                  ¿Estás seguro de que quieres agendar el tour <strong>{tour.title}</strong> por {new Intl.NumberFormat('es-CO', {
                     style: 'currency',
                     currency: 'COP',
                     maximumFractionDigits: 0
@@ -157,7 +155,7 @@ function TourCard({ tour, isOfficial }: { tour: any; isOfficial: boolean }) {
                 <DialogClose asChild>
                   <Button variant="outline">Cancelar</Button>
                 </DialogClose>
-                <Link href={`/reservar-tour/${tour.id}`}>
+                <Link href={`/agendar-tour/${tour.id}`}>
                   <Button>Confirmar</Button>
                 </Link>
               </div>

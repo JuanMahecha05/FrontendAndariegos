@@ -1,8 +1,87 @@
+'use client';
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Clock, MapPin, Star, Users } from 'lucide-react'
+import React from 'react'
+
+function getRandomNeonColor(currentColor: string): string {
+  const colors = ['neon-yellow', 'neon-blue', 'neon-red'];
+  const availableColors = colors.filter(color => color !== currentColor);
+  return availableColors[Math.floor(Math.random() * availableColors.length)];
+}
+
+function FeaturedTourCard({ tour }: { tour: any }) {
+  const [neon, setNeon] = React.useState('neon-yellow');
+  const [isHovered, setIsHovered] = React.useState(false);
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    setNeon(prev => getRandomNeonColor(prev));
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+
+  return (
+    <Card 
+      className={`overflow-hidden transition-all duration-200 border-2 border-gray-300 ${isHovered ? neon : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="relative h-52 w-full">
+        <Image
+          src={tour.image}
+          alt={tour.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover"
+        />
+      </div>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-xl">{tour.title}</CardTitle>
+          <div className="flex items-center">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+            <span className="text-sm font-medium">{tour.rating}</span>
+          </div>
+        </div>
+        <CardDescription>{tour.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center text-sm text-gray-500">
+            <Clock className="h-4 w-4 mr-2" />
+            <span>{tour.duration}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <MapPin className="h-4 w-4 mr-2" />
+            <span>{tour.location}</span>
+          </div>
+          <div className="flex items-center text-sm text-gray-500">
+            <Users className="h-4 w-4 mr-2" />
+            <span>{tour.groupSize}</span>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between items-center">
+        <div className="text-lg font-semibold">
+          {new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            maximumFractionDigits: 0
+          }).format(tour.price)}
+        </div>
+        <Button asChild>
+          <Link href={`/tours/${tour.id}`}>Ver detalles</Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
 
 export function FeaturedTours() {
   const tours = [
@@ -53,55 +132,7 @@ export function FeaturedTours() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {tours.map((tour) => (
-            <Card key={tour.id} className="overflow-hidden transition-all duration-300 hover:shadow-lg">
-              <div className="relative h-52 w-full">
-                <Image
-                  src={tour.image}
-                  alt={tour.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover"
-                />
-              </div>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl">{tour.title}</CardTitle>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">{tour.rating}</span>
-                  </div>
-                </div>
-                <CardDescription>{tour.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span>{tour.duration}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    <span>{tour.location}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Users className="h-4 w-4 mr-2" />
-                    <span>{tour.groupSize}</span>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between items-center">
-                <div className="text-lg font-semibold">
-                  {new Intl.NumberFormat('es-CO', {
-                    style: 'currency',
-                    currency: 'COP',
-                    maximumFractionDigits: 0
-                  }).format(tour.price)}
-                </div>
-                <Button asChild>
-                  <Link href={`/tours/${tour.id}`}>Ver detalles</Link>
-                </Button>
-              </CardFooter>
-            </Card>
+            <FeaturedTourCard key={tour.id} tour={tour} />
           ))}
         </div>
         
