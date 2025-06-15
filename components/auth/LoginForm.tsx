@@ -18,10 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
-import { useMutation } from '@apollo/client';
-import { LOGIN_MUTATION } from '@/graphql/mutations/auth';
-import Cookies from 'js-cookie';
-import { useAuth } from '@/hooks/AuthContext';
+import { login } from '@/lib/actions'
 
 const loginSchema = z.object({
   email: z
@@ -49,47 +46,34 @@ export function LoginForm() {
     },
   })
 
-  const [login_mutation] = useMutation(LOGIN_MUTATION);
-  const { login } = useAuth();
-
   const onSubmit = async (data: LoginFormValues) => {
-  setIsLoading(true);
-  
-  try {
-      const response = await login_mutation({
-        variables: {
-          identifier: data.email,
-          password: data.password,
-        },
-      });
-
-      const { access_token, user } = response.data.login;
-      login(access_token);
+    setIsLoading(true)
+    
+    try {
+      const { user } = await login(data.email, data.password)
       
       toast({
         title: '¡Inicio de sesión exitoso!',
         description: `Bienvenido, ${user.name}`,
       })
 
-      router.push('/'); // redirige al home
-
+      router.push('/')
+      router.refresh()
     } catch (error: any) {
-      const gqlError = error?.graphQLErrors?.[0]?.message;
-      
       toast({
         title: 'Error al iniciar sesión',
-        description: gqlError || 'Correo o contraseña inválidos.',
+        description: error.message || 'Correo o contraseña inválidos.',
         variant: 'destructive',
-      });
+      })
 
       form.setError('root', {
         type: 'manual',
-        message: gqlError || 'Correo o contraseña inválidos.',
-      });
+        message: error.message || 'Correo o contraseña inválidos.',
+      })
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <Form {...form}>
@@ -102,81 +86,62 @@ export function LoginForm() {
               <FormLabel>Correo electrónico</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="tu@correo.com"
                   type="email"
-                  autoComplete="email"
-                  disabled={isLoading}
+                  placeholder="ejemplo@correo.com"
                   {...field}
+                  disabled={isLoading}
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="password"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center justify-between">
-                <FormLabel>Contraseña</FormLabel>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
+              <FormLabel>Contraseña</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
-                    placeholder="••••••••"
                     type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    disabled={isLoading}
+                    placeholder="••••••••"
                     {...field}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    )}
-                    <span className="sr-only">
-                      {showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    </span>
-                  </Button>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
-        {form.formState.errors.root && (
-          <div className="rounded-md bg-red-50 p-3">
-            <div className="text-sm text-red-500">
-              {form.formState.errors.root.message}
-            </div>
-          </div>
-        )}
-        
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Iniciar sesión
+
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Iniciando sesión...
+            </>
+          ) : (
+            'Iniciar sesión'
+          )}
         </Button>
+
+        <p className="text-center text-sm text-gray-600">
+          ¿No tienes una cuenta?{' '}
+          <Link href="/register" className="text-primary hover:underline">
+            Regístrate
+          </Link>
+        </p>
       </form>
     </Form>
   )
