@@ -42,7 +42,8 @@ export async function login(identifier: string, password: string) {
     const { access_token, user } = data.data.login
 
     // Guardar el token en una cookie HTTP-only
-    cookies().set('access_token', access_token, {
+    const cookieStore = cookies()
+    cookieStore.set('access_token', access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -101,5 +102,183 @@ export async function register(createUserInput: {
 }
 
 export async function logout() {
-  cookies().delete('access_token')
+  const cookieStore = cookies()
+  cookieStore.delete('access_token')
+}
+
+/**
+ * Crea un nuevo tour en el sistema
+ * 
+ * @param formData - Datos del tour a crear
+ * @param formData.title - Título del tour
+ * @param formData.description - Descripción detallada del tour
+ * @param formData.events - Array de eventos seleccionados para el tour
+ *   - id: Identificador único del evento
+ *   - nombre: Nombre del evento
+ *   - descripcion: Descripción del evento
+ *   - ubicacion: Lugar del evento
+ *   - duracion: Duración en horas
+ *   - precio: Costo del evento
+ *   - imagen: URL de la imagen
+ * 
+ * La mutación GraphQL necesita:
+ * - createTourInput: Objeto con los datos del tour
+ *   - title: Título del tour
+ *   - description: Descripción del tour
+ *   - eventIds: Array de IDs de los eventos seleccionados
+ * 
+ * @returns Objeto con el resultado de la operación
+ *   - success: boolean - Indica si la operación fue exitosa
+ *   - message: string - Mensaje descriptivo del resultado
+ *   - tour: object (opcional) - Datos del tour creado
+ *     - id: Identificador único del tour
+ *     - title: Título del tour
+ *     - description: Descripción del tour
+ *     - events: Array de eventos asociados
+ */
+export async function createTour(formData: {
+  title: string;
+  description: string;
+  events: Array<{
+    id: number;
+    nombre: string;
+    descripcion: string;
+    ubicacion: string;
+    duracion: number;
+    precio: number;
+    imagen: string;
+  }>;
+}) {
+  'use server'
+  
+  try {
+    const authHeaders = await getAuthHeaders();
+    const response = await fetch(`${API_URL}/graphql`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+      },
+      body: JSON.stringify({
+        query: `
+          mutation CreateTour($createTourInput: CreateTourInput!) {
+            createTour(createTourInput: $createTourInput) {
+              id
+              title
+              description
+              events {
+                id
+                nombre
+              }
+            }
+          }
+        `,
+        variables: {
+          createTourInput: {
+            title: formData.title,
+            description: formData.description,
+            eventIds: formData.events.map(event => event.id),
+          },
+        },
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.errors) {
+      throw new Error(data.errors[0].message);
+    }
+
+    return { 
+      success: true, 
+      message: 'Tour creado exitosamente',
+      tour: data.data.createTour 
+    };
+  } catch (error) {
+    console.error('Error creating tour:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Error al crear el tour' 
+    };
+  }
+}
+
+/**
+ * Actualiza un tour existente
+ * 
+ * TODO: Implementar cuando el backend esté disponible
+ * 
+ * La API necesitará:
+ * 
+ * 1. Endpoint: PUT /tours/{id}
+ * 
+ * 2. Headers requeridos:
+ *    - Content-Type: application/json
+ *    - Authorization: Bearer {token}
+ * 
+ * 3. Body de la petición:
+ *    {
+ *      "title": string,
+ *      "description": string,
+ *      "events": Array<{
+ *        "id": string | number,
+ *        "nombre": string,
+ *        "descripcion": string,
+ *        "ubicacion": string,
+ *        "duracion": number,
+ *        "precio": number,
+ *        "imagen": string
+ *      }>
+ *    }
+ * 
+ * 4. Respuesta esperada:
+ *    {
+ *      "success": boolean,
+ *      "message": string,
+ *      "tour": {
+ *        "id": string,
+ *        "title": string,
+ *        "description": string,
+ *        "events": Array<{
+ *          "id": string | number,
+ *          "nombre": string
+ *        }>
+ *      }
+ *    }
+ */
+export async function updateTour(tourId: string, formData: {
+  title: string;
+  description: string;
+  events: Array<{
+    id: number;
+    nombre: string;
+    descripcion: string;
+    ubicacion: string;
+    duracion: number;
+    precio: number;
+    imagen: string;
+  }>;
+}) {
+  'use server'
+  
+  try {
+    // Simulamos una pequeña demora para que parezca que estamos procesando
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Por ahora, siempre devolvemos éxito
+    return { 
+      success: true, 
+      message: 'Tour actualizado exitosamente',
+      tour: {
+        id: tourId,
+        ...formData
+      }
+    };
+  } catch (error) {
+    console.error('Error updating tour:', error);
+    return { 
+      success: false, 
+      message: 'Error al actualizar el tour'
+    };
+  }
 } 

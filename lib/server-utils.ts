@@ -1,5 +1,7 @@
 import { cookies } from 'next/headers'
 import { jwtDecode } from 'jwt-decode'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 export type User = {
   name: string
@@ -39,11 +41,20 @@ export async function getServerSession() {
 }
 
 export async function getAuthHeaders() {
-  const session = await getServerSession()
+  const cookieStore = cookies()
+  const token = cookieStore.get('access_token')
   
-  return {
-    Authorization: session?.token ? `Bearer ${session.token}` : '',
+  if (!token) {
+    return {}
   }
+
+  return {
+    Authorization: `Bearer ${token.value}`
+  }
+}
+
+export async function getSession() {
+  return await getServerSession()
 }
 
 export function isAuthenticated(roles?: string[]) {
