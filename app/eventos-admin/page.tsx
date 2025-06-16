@@ -1,14 +1,33 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, MapPin, Star, Users, Calendar, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { useAuth } from '@/hooks/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Clock,
+  MapPin,
+  Star,
+  Users,
+  Calendar,
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { useAuth } from "@/hooks/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 interface Evento {
   id: number;
@@ -29,7 +48,7 @@ interface Evento {
 }
 
 export default function EventosAdminPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -38,48 +57,68 @@ export default function EventosAdminPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push('/login');
+      router.push("/login");
       return;
     }
 
-    if (!user?.roles?.includes('ORGANIZER')) {
-      router.push('/');
+    if (!user?.roles?.includes("ORGANIZER")) {
+      router.push("/");
       return;
     }
 
-    const storedEventos = localStorage.getItem("eventos");
-    if (storedEventos) {
-      const parsed = JSON.parse(storedEventos).map((e: any, index: number) => ({
-        ...e,
-        id: index + 1,
-        inscritos: [],
-      }));
-      setEventos(parsed);
-    }
-    setLoading(false);
-  }, [isAuthenticated, user, router]);
+    const fetchEventos = async () => {
+      try {
+        const res = await fetch(`${API_URL}/events/my-events`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Error al cargar eventos");
+        const data = await res.json();
+        setEventos(data);
+      } catch (err) {
+        toast({
+          title: "Error al cargar eventos",
+          description: "Intenta nuevamente más tarde.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEventos();
+  }, [isAuthenticated, user, token, router, toast]);
 
   const handleEdit = (eventId: number) => {
     router.push(`/eventos/editar/${eventId}`);
   };
 
   const handleDelete = async (eventId: number) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este evento?')) {
-      try {
-        const updated = eventos.filter(evento => evento.id !== eventId);
-        setEventos(updated);
-        localStorage.setItem("eventos", JSON.stringify(updated));
-        toast({
-          title: 'Evento eliminado',
-          description: 'El evento ha sido eliminado exitosamente.',
-        });
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'No se pudo eliminar el evento.',
-          variant: 'destructive',
-        });
-      }
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este evento?")) return;
+
+    try {
+      const res = await fetch(`${API_URL}/events/${eventId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("No se pudo eliminar el evento");
+
+      setEventos(eventos.filter((evento) => evento.id !== eventId));
+      toast({
+        title: "Evento eliminado",
+        description: "El evento ha sido eliminado exitosamente.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el evento.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -109,7 +148,9 @@ export default function EventosAdminPage() {
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Administración de Eventos</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Administración de Eventos
+            </h1>
             <p className="text-xl md:text-2xl max-w-2xl mx-auto px-4">
               Gestiona todos los eventos y visualiza los participantes
             </p>
@@ -154,7 +195,7 @@ export default function EventosAdminPage() {
                       <div className="space-y-3">
                         <div className="flex items-center text-sm text-gray-500">
                           <Calendar className="h-4 w-4 mr-2" />
-                          <span>{evento.date || 'Sin fecha'}</span>
+                          <span>{evento.date || "Sin fecha"}</span>
                         </div>
                         <div className="flex items-start text-sm text-gray-500">
                           <Clock className="h-4 w-4 mr-2 mt-1" />
@@ -180,7 +221,7 @@ export default function EventosAdminPage() {
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <Users className="h-4 w-4 mr-2" />
-                          <span>{evento.inscritos?.length || 0} / {evento.availableSpots || '–'} participantes</span>
+                          <span>{evento.inscritos?.length || 0} / {evento.availableSpots || "–"} participantes</span>
                         </div>
                       </div>
                     </div>

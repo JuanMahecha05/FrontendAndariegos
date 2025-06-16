@@ -1,30 +1,26 @@
 'use client';
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock, MapPin, Star, Users, Calendar, MoreHorizontal, ChevronUp, ChevronDown, PlusCircle } from 'lucide-react'
+import Image from 'next/image';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/AuthContext';
+import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Card, CardContent, CardDescription,
+  CardFooter, CardHeader, CardTitle
+} from '@/components/ui/card';
+import {
+  Clock, MapPin, Star, Users, MoreHorizontal
+} from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogHeader, DialogTitle, DialogTrigger,
   DialogClose
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { officialTours, userTours } from '@/data/tours'
-import React, { useEffect, useState } from 'react'
-import { useAuth } from '@/hooks/AuthContext'
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
 function getRandomNeonColor(exclude: string): string {
@@ -33,25 +29,56 @@ function getRandomNeonColor(exclude: string): string {
 }
 
 export default function ToursPage() {
-  const [tours, setTours] = useState(officialTours);
-  const { user } = useAuth();
+  const [tours, setTours] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user, token } = useAuth();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const local = localStorage.getItem('tours');
-      if (local) {
-        setTours(JSON.parse(local));
+    const fetchTours = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/tours`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (!res.ok) throw new Error("No se pudieron cargar los tours");
+        const data = await res.json();
+        setTours(data);
+      } catch (err) {
+        console.error("Error cargando tours:", err);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  const handleDeleteTour = (id: number) => {
-    if (typeof window !== 'undefined') {
-      const updatedTours = tours.filter(tour => tour.id !== id);
-      localStorage.setItem('tours', JSON.stringify(updatedTours));
-      setTours(updatedTours);
+    if (token) {
+      fetchTours();
+    }
+  }, [token]);
+
+  const handleDeleteTour = async (id: number) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/tours/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!res.ok) throw new Error("Error al eliminar tour");
+
+      setTours(prev => prev.filter(tour => tour.id !== id));
+    } catch (error) {
+      console.error("Error eliminando tour:", error);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-28 text-center">
+        <p className="text-muted-foreground text-lg">Cargando tours...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pt-20 pb-16">
@@ -73,9 +100,7 @@ export default function ToursPage() {
         </div>
       </div>
 
-      {/* Tours Grid */}
       <div className="container mx-auto px-4 space-y-16">
-        {/* Tours Oficiales */}
         {user?.roles.includes('ORGANIZER') && (
           <div className="mb-10 flex justify-center">
             <Button asChild size="lg" className="px-8 py-4 text-lg font-semibold animate-bounce">
@@ -83,11 +108,12 @@ export default function ToursPage() {
             </Button>
           </div>
         )}
+
         <section>
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-primary dark:text-white">Tours</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {tours.map((tour) => (
               <TourCard key={tour.id} tour={tour} isOfficial={true} onDelete={handleDeleteTour} />
@@ -96,12 +122,12 @@ export default function ToursPage() {
         </section>
       </div>
     </div>
-  )
+  );
 }
 
 function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boolean; onDelete: (id: number) => void }) {
-  const [neon, setNeon] = React.useState('neon-yellow');
-  const [isHovered, setIsHovered] = React.useState(false);
+  const [neon, setNeon] = useState('neon-yellow');
+  const [isHovered, setIsHovered] = useState(false);
   const { user } = useAuth();
 
   const handleMouseEnter = () => {
@@ -151,11 +177,15 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
           <div className="mt-4">
             <h4 className="font-semibold mb-2">Eventos incluidos:</h4>
             <ul className="space-y-2">
-              {tour.events?.map((event: any, index: number) => (
-                <li key={index} className="text-sm text-gray-600">
-                  • {event.title}
-                </li>
-              )) ?? <li className="text-sm text-gray-600">No hay eventos programados</li>}
+              {tour.events?.length > 0 ? (
+                tour.events.map((event: any, index: number) => (
+                  <li key={index} className="text-sm text-gray-600">
+                    • {event.title}
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-gray-600">No hay eventos programados</li>
+              )}
             </ul>
           </div>
         </div>
@@ -178,11 +208,7 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
                 <DialogHeader>
                   <DialogTitle>Confirmar Reserva</DialogTitle>
                   <DialogDescription>
-                    ¿Estás seguro de que quieres agendar el tour <strong>{tour.title}</strong> por {new Intl.NumberFormat('es-CO', {
-                      style: 'currency',
-                      currency: 'COP',
-                      maximumFractionDigits: 0
-                    }).format(tour.price)}?
+                    ¿Estás seguro de que quieres agendar el tour <strong>{tour.title}</strong>?
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex justify-end gap-2 pt-4">
@@ -219,7 +245,10 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
                 <Dialog>
                   <DialogTrigger asChild>
                     <DropdownMenuItem asChild>
-                      <Button variant="ghost" className="w-full justify-start text-left font-normal text-red-600 hover:bg-red-50 focus:bg-red-50">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-left font-normal text-red-600 hover:bg-red-50 focus:bg-red-50"
+                      >
                         Eliminar
                       </Button>
                     </DropdownMenuItem>
@@ -228,7 +257,7 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
                     <DialogHeader>
                       <DialogTitle>Confirmar Eliminación</DialogTitle>
                       <DialogDescription>
-                        ¿Estás seguro de que deseas eliminar el tour <strong>{tour.title}</strong>? Esta acción no se puede deshacer.
+                        ¿Estás seguro de que deseas eliminar el tour <strong>{tour.title}</strong>?
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end gap-2 pt-4">

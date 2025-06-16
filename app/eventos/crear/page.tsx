@@ -5,14 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import api from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 
-const MALICIOUS_DOMAINS = [
-  "porn", "sex", "xxx", "redtube", "xvideos", "xnxx", "hentai",
-  "youporn", "brazzers", "camgirl", "cam4", "chaturbate", "xhamster",
-  "spankbang", "tnaflix", "fapdu", "erotic", "escort", "bet365",
-  "casino", "phishing", "malware", "virus",
-];
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+const MALICIOUS_DOMAINS = ["porn", "sex", "xxx", "redtube", "xvideos", "xnxx", "hentai", "youporn", "brazzers", "camgirl", "cam4", "chaturbate", "xhamster", "spankbang", "tnaflix", "fapdu", "erotic", "escort", "bet365", "casino", "phishing", "malware", "virus"];
 
 function isSafeUrl(url: string) {
   try {
@@ -25,6 +21,7 @@ function isSafeUrl(url: string) {
 
 export default function CrearEventoPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [form, setForm] = useState({
     name: "",
     image1: "",
@@ -37,11 +34,8 @@ export default function CrearEventoPage() {
     availableSpots: "",
   });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === "number" ? (value === "" ? "" : Number(value)) : value;
     setForm({ ...form, [name]: parsedValue });
@@ -50,9 +44,7 @@ export default function CrearEventoPage() {
   const toggleDay = (day: string) => {
     setForm(prev => {
       const exists = prev.days.find(d => d.day === day);
-      const updatedDays = exists
-        ? prev.days.filter(d => d.day !== day)
-        : [...prev.days, { day, times: [] }];
+      const updatedDays = exists ? prev.days.filter(d => d.day !== day) : [...prev.days, { day, times: [] }];
       return { ...prev, days: updatedDays };
     });
   };
@@ -64,9 +56,7 @@ export default function CrearEventoPage() {
         d.day === day
           ? {
               ...d,
-              times: d.times.includes(time)
-                ? d.times.filter(t => t !== time)
-                : [...d.times, time],
+              times: d.times.includes(time) ? d.times.filter(t => t !== time) : [...d.times, time],
             }
           : d
       ),
@@ -76,41 +66,44 @@ export default function CrearEventoPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
+
+    if (!form.name || !form.description || !form.price || (!form.date && form.days.length === 0) || !form.city || !form.address) {
+      setError("Por favor, completa todos los campos obligatorios.");
+      return;
+    }
+    if (form.image1 && !isSafeUrl(form.image1)) {
+      setError("La URL de la imagen no es válida o proviene de un sitio no permitido.");
+      return;
+    }
 
     try {
-      if (
-        !form.name ||
-        !form.description ||
-        !form.price ||
-        (!form.date && form.days.length === 0) ||
-        !form.city ||
-        !form.address
-      ) {
-        setError("Por favor, completa todos los campos obligatorios.");
-        return;
-      }
-      if (form.image1 && !isSafeUrl(form.image1)) {
-        setError("La URL de la imagen no es válida o proviene de un sitio no permitido.");
-        return;
+      const response = await fetch(`${API_URL}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al crear el evento");
       }
 
-      // Simulación de guardado SQL
-      const existing = JSON.parse(localStorage.getItem("eventos") || "[]");
-      localStorage.setItem("eventos", JSON.stringify([...existing, form]));
+      toast({
+        title: "¡Evento creado exitosamente!",
+        description: "El evento ha sido guardado en la base de datos.",
+      });
 
-      // Simulación de INSERT SQL
-      console.log("INSERT INTO eventos (...) VALUES (...):", JSON.stringify(form, null, 2));
-
-      setSuccess("¡Evento creado exitosamente!");
       setTimeout(() => router.push("/eventos"), 1500);
     } catch (error) {
-      console.error("Error al crear el evento:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al guardar el evento.",
+        variant: "destructive",
+      });
+      console.error("Error:", error);
     }
   };
 
-
-  const weekDays = ["Lunes", "Martes", "Mi\u00e9rcoles", "Jueves", "Viernes", "S\u00e1bado", "Domingo"];
+  const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
   const hourRanges = ["6:00-9:00", "12:00-14:00", "14:00-17:00", "17:00-20:00"];
 
   return (
@@ -191,7 +184,6 @@ export default function CrearEventoPage() {
               </div>
             </div>
             {error && <div className="text-red-600 text-sm font-medium">{error}</div>}
-            {success && <div className="text-green-600 text-sm font-medium">{success}</div>}
             <Button type="submit" size="lg" className="w-full">
               Crear evento
             </Button>

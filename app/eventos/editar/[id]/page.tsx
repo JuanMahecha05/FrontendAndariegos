@@ -6,30 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 
 const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const hourRanges = ["6:00-9:00", "12:00-14:00", "14:00-17:00", "17:00-20:00"];
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 export default function EditarEventoPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [form, setForm] = useState<any>(null);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    const eventos = JSON.parse(localStorage.getItem("eventos") || "[]");
-    const evento = eventos.find((e: any, index: number) => index + 1 === parseInt(id as string));
-    if (evento) {
-      setForm({ ...evento });
-    } else {
-      setError("Evento no encontrado");
-    }
+    const fetchEvento = async () => {
+      try {
+        const response = await fetch(`${API_URL}/events/${id}`);
+        if (!response.ok) throw new Error("Evento no encontrado");
+        const data = await response.json();
+        setForm(data);
+      } catch (err) {
+        setError("No se pudo cargar el evento.");
+        console.error(err);
+      }
+    };
+
+    fetchEvento();
   }, [id]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const parsedValue = type === "number" ? (value === "" ? "" : Number(value)) : value;
     setForm({ ...form, [name]: parsedValue });
@@ -57,23 +63,38 @@ export default function EditarEventoPage() {
     setForm({ ...form, days: updatedDays });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     if (!form.name || !form.description || !form.price || !form.city || !form.address) {
       setError("Por favor, completa todos los campos obligatorios.");
       return;
     }
 
-    const eventos = JSON.parse(localStorage.getItem("eventos") || "[]");
-    const updated = eventos.map((ev: any, index: number) =>
-      index + 1 === parseInt(id as string) ? form : ev
-    );
-    localStorage.setItem("eventos", JSON.stringify(updated));
-    setSuccess("¡Evento actualizado exitosamente!");
-    setTimeout(() => router.push("/eventos-admin"), 1500);
+    try {
+      const response = await fetch(`${API_URL}/events/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!response.ok) throw new Error("Error al actualizar el evento");
+
+      toast({
+        title: "Evento actualizado",
+        description: "Los cambios se guardaron correctamente.",
+      });
+
+      setTimeout(() => router.push("/eventos-admin"), 1500);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el evento.",
+        variant: "destructive",
+      });
+      console.error(err);
+    }
   };
 
   if (!form) {
@@ -94,83 +115,39 @@ export default function EditarEventoPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block font-medium mb-1 text-primary">Título *</label>
-              <Input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-                maxLength={80}
-              />
+              <Input name="name" value={form.name} onChange={handleChange} required maxLength={80} />
             </div>
             <div>
               <label className="block font-medium mb-1 text-primary">URL de imagen</label>
-              <Input
-                name="image1"
-                value={form.image1}
-                onChange={handleChange}
-                type="url"
-              />
+              <Input name="image1" value={form.image1} onChange={handleChange} type="url" />
             </div>
             <div>
               <label className="block font-medium mb-1 text-primary">Descripción *</label>
-              <Textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                required
-              />
+              <Textarea name="description" value={form.description} onChange={handleChange} required />
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block font-medium mb-1 text-primary">Precio *</label>
-                <Input
-                  name="price"
-                  value={form.price}
-                  onChange={handleChange}
-                  required
-                  type="number"
-                  min={0}
-                />
+                <Input name="price" value={form.price} onChange={handleChange} required type="number" min={0} />
               </div>
               <div className="flex-1">
                 <label className="block font-medium mb-1 text-primary">Aforo</label>
-                <Input
-                  name="availableSpots"
-                  value={form.availableSpots}
-                  onChange={handleChange}
-                  type="number"
-                  min={0}
-                />
+                <Input name="availableSpots" value={form.availableSpots} onChange={handleChange} type="number" min={0} />
               </div>
             </div>
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block font-medium mb-1 text-primary">Ciudad *</label>
-                <Input
-                  name="city"
-                  value={form.city}
-                  onChange={handleChange}
-                  required
-                />
+                <Input name="city" value={form.city} onChange={handleChange} required />
               </div>
               <div className="flex-1">
                 <label className="block font-medium mb-1 text-primary">Dirección *</label>
-                <Input
-                  name="address"
-                  value={form.address}
-                  onChange={handleChange}
-                  required
-                />
+                <Input name="address" value={form.address} onChange={handleChange} required />
               </div>
             </div>
             <div>
               <label className="block font-medium mb-1 text-primary">Fecha</label>
-              <Input
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                type="date"
-              />
+              <Input name="date" value={form.date} onChange={handleChange} type="date" />
             </div>
             <div>
               <label className="block font-medium mb-1 text-primary">Días y horarios</label>
@@ -207,7 +184,6 @@ export default function EditarEventoPage() {
               </div>
             </div>
             {error && <div className="text-red-600 text-sm font-medium">{error}</div>}
-            {success && <div className="text-green-600 text-sm font-medium">{success}</div>}
             <Button type="submit" size="lg" className="w-full">
               Guardar cambios
             </Button>
