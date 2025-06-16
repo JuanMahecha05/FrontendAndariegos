@@ -7,15 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/AuthContext";
 
 const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const hourRanges = ["6:00-9:00", "12:00-14:00", "14:00-17:00", "17:00-20:00"];
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
+const dayMap: Record<string, number> = {
+  "Lunes": 1,
+  "Martes": 2,
+  "Miércoles": 3,
+  "Jueves": 4,
+  "Viernes": 5,
+  "Sábado": 6,
+  "Domingo": 7
+};
+
 export default function EditarEventoPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { token } = useAuth();
   const [form, setForm] = useState<any>(null);
   const [error, setError] = useState("");
 
@@ -25,7 +37,28 @@ export default function EditarEventoPage() {
         const response = await fetch(`${API_URL}/events/${id}`);
         if (!response.ok) throw new Error("Evento no encontrado");
         const data = await response.json();
-        setForm(data);
+
+        const daysMap: { [key: number]: string } = Object.fromEntries(
+          Object.entries(dayMap).map(([k, v]) => [v, k])
+        );
+
+        const groupedDays: Record<string, string[]> = {};
+        data.eventTimes?.forEach((et: any) => {
+          const dayName = daysMap[et.availabilityPattern.dayOfWeek];
+          const timeRange = `${et.availabilityPattern.startTime.slice(0, 5)}-${et.availabilityPattern.endTime.slice(0, 5)}`;
+          if (!groupedDays[dayName]) groupedDays[dayName] = [];
+          groupedDays[dayName].push(timeRange);
+        });
+
+        const transformedForm = {
+          ...data,
+          price: data.price.toString(),
+          availableSpots: data.availableSpots?.toString() || "",
+          date: data.date || "",
+          days: Object.entries(groupedDays).map(([day, times]) => ({ day, times }))
+        };
+
+        setForm(transformedForm);
       } catch (err) {
         setError("No se pudo cargar el evento.");
         console.error(err);
@@ -63,6 +96,18 @@ export default function EditarEventoPage() {
     setForm({ ...form, days: updatedDays });
   };
 
+  const convertToTimeSlots = () => {
+    const timeSlots: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
+    form.days.forEach((d: any) => {
+      const dayNum = dayMap[d.day];
+      d.times.forEach((range: string) => {
+        const [startTime, endTime] = range.split("-");
+        timeSlots.push({ dayOfWeek: dayNum, startTime, endTime });
+      });
+    });
+    return timeSlots;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -72,11 +117,26 @@ export default function EditarEventoPage() {
       return;
     }
 
+    const payload = {
+      name: form.name,
+      image1: form.image1,
+      description: form.description,
+      price: Number(form.price),
+      date: form.date || null,
+      city: form.city,
+      address: form.address,
+      availableSpots: form.availableSpots ? Number(form.availableSpots) : null,
+      timeSlots: convertToTimeSlots(),
+    };
+
     try {
       const response = await fetch(`${API_URL}/events/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) throw new Error("Error al actualizar el evento");

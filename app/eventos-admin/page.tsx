@@ -25,9 +25,26 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+
+type Attendee = {
+  id: number;
+  name: string;
+  email: string;
+};
+
+type Availability = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+};
+
+type EventTime = {
+  id: number;
+  availabilityPattern: Availability;
+};
 
 interface Evento {
   id: number;
@@ -35,16 +52,21 @@ interface Evento {
   description: string;
   image1: string;
   price: number;
-  date: string;
+  date: string | null;
   city: string;
   address: string;
-  availableSpots: number;
-  days?: { day: string; times: string[] }[];
-  inscritos?: {
-    id: number;
-    name: string;
-    email: string;
-  }[];
+  availableSpots: number | null;
+  eventTimes: EventTime[];
+  inscritos?: Attendee[];
+}
+
+const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+function formatTimeSlot(availability: Availability) {
+  const day = weekDays[availability.dayOfWeek - 1];
+  const start = availability.startTime?.slice(0, 5);
+  const end = availability.endTime?.slice(0, 5);
+  return `${day}: ${start} - ${end}`;
 }
 
 export default function EventosAdminPage() {
@@ -68,7 +90,7 @@ export default function EventosAdminPage() {
 
     const fetchEventos = async () => {
       try {
-        const res = await fetch(`${API_URL}/events/my-events`, {
+        const res = await fetch(`${API_URL}/events/by-organizer/${user.username}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -76,7 +98,23 @@ export default function EventosAdminPage() {
 
         if (!res.ok) throw new Error("Error al cargar eventos");
         const data = await res.json();
-        setEventos(data);
+
+        // Fetch inscritos por cada evento
+        const withInscritos = await Promise.all(
+          data.map(async (event: Evento) => {
+            try {
+              const resInscritos = await fetch(`${API_URL}/events/${event.id}/attendees`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const inscritos = resInscritos.ok ? await resInscritos.json() : [];
+              return { ...event, inscritos };
+            } catch {
+              return { ...event, inscritos: [] };
+            }
+          })
+        );
+
+        setEventos(withInscritos);
       } catch (err) {
         toast({
           title: "Error al cargar eventos",
@@ -200,12 +238,10 @@ export default function EventosAdminPage() {
                         <div className="flex items-start text-sm text-gray-500">
                           <Clock className="h-4 w-4 mr-2 mt-1" />
                           <div>
-                            {evento.days && evento.days.length > 0 ? (
+                            {evento.eventTimes.length > 0 ? (
                               <ul className="list-disc ml-4">
-                                {evento.days.map((dayObj, index) => (
-                                  <li key={index}>
-                                    {dayObj.day}: {dayObj.times.join(", ")}
-                                  </li>
+                                {evento.eventTimes.map((et) => (
+                                  <li key={et.id}>{formatTimeSlot(et.availabilityPattern)}</li>
                                 ))}
                               </ul>
                             ) : (

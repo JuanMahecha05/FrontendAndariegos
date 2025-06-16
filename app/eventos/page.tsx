@@ -1,19 +1,21 @@
 "use client";
-import React from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react'
-import { useAuth } from '@/hooks/AuthContext'
-import { useToast } from '@/components/ui/use-toast'
-import { useRouter } from "next/navigation"
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react';
+import { useAuth } from '@/hooks/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import { useRouter } from 'next/navigation';
 
 const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
 function getRandomNeonColor(exclude: string): string {
   const filtered = neonColors.filter(c => c !== exclude);
   return filtered[Math.floor(Math.random() * filtered.length)];
 }
+
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (id: number) => void }) {
   const [neon, setNeon] = React.useState('neon-yellow');
@@ -36,8 +38,8 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (id: number
     >
       <div className="relative h-52 w-full">
         <Image
-          src={evento.image}
-          alt={evento.title}
+          src={evento.image1}
+          alt={evento.name}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover"
@@ -45,31 +47,37 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (id: number
       </div>
       <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-xl">{evento.title}</CardTitle>
+          <CardTitle className="text-xl">{evento.name}</CardTitle>
           <div className="flex items-center">
             <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-            <span className="text-sm font-medium">{evento.rating}</span>
+            <span className="text-sm font-medium">4.8</span>
           </div>
         </div>
         <CardDescription>{evento.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <div className="flex items-center text-sm text-gray-500">
-            <Calendar className="h-4 w-4 mr-2" />
-            <span>{evento.date}</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-500">
-            <Clock className="h-4 w-4 mr-2" />
-            <span>{evento.time}</span>
-          </div>
+          {evento.eventTimes.length > 0 && (
+            <div className="flex items-center text-sm text-gray-500">
+              <Calendar className="h-4 w-4 mr-2" />
+              <span>Día: {evento.eventTimes[0].availabilityPattern.dayOfWeek}</span>
+            </div>
+          )}
+          {evento.eventTimes.length > 0 && (
+            <div className="flex items-center text-sm text-gray-500">
+              <Clock className="h-4 w-4 mr-2" />
+              <span>
+                {evento.eventTimes[0].availabilityPattern.startTime.slice(0, 5)} - {evento.eventTimes[0].availabilityPattern.endTime.slice(0, 5)}
+              </span>
+            </div>
+          )}
           <div className="flex items-center text-sm text-gray-500">
             <MapPin className="h-4 w-4 mr-2" />
-            <span>{evento.location}</span>
+            <span>{evento.address}</span>
           </div>
           <div className="flex items-center text-sm text-gray-500">
             <Users className="h-4 w-4 mr-2" />
-            <span>Máximo {evento.maxParticipants} participantes</span>
+            <span>Máximo {evento.availableSpots || 20} participantes</span>
           </div>
         </div>
       </CardContent>
@@ -90,47 +98,26 @@ export default function EventosPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  const eventos = [
-    {
-      id: 1,
-      title: 'Visita Guiada al Museo del Oro',
-      description: 'Explora la colección más grande de orfebrería prehispánica del mundo con un experto.',
-      image: 'https://images.pexels.com/photos/2372978/pexels-photo-2372978.jpeg',
-      duration: '2 horas',
-      location: 'Museo del Oro, La Candelaria',
-      rating: 4.9,
-      maxParticipants: 15,
-      price: 35000,
-      date: '2024-04-15',
-      time: '10:00'
-    },
-    {
-      id: 2,
-      title: 'Recorrido Gastronómico Plaza de Paloquemao',
-      description: 'Descubre los sabores y aromas de la gastronomía colombiana en el mercado más tradicional.',
-      image: 'https://images.pexels.com/photos/2338015/pexels-photo-2338015.jpeg',
-      duration: '3 horas',
-      location: 'Plaza de Paloquemao',
-      rating: 4.8,
-      maxParticipants: 8,
-      price: 45000,
-      date: '2024-04-16',
-      time: '09:00'
-    },
-    {
-      id: 3,
-      title: 'Taller de Arte Urbano',
-      description: 'Aprende sobre el grafiti y el arte urbano mientras creas tu propia obra.',
-      image: 'https://images.pexels.com/photos/14442358/pexels-photo-14442358.jpeg',
-      duration: '2.5 horas',
-      location: 'La Candelaria',
-      rating: 4.7,
-      maxParticipants: 10,
-      price: 40000,
-      date: '2024-04-17',
-      time: '14:00'
-    }
-  ]
+  const [eventos, setEventos] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchEventos = async () => {
+      try {
+        const res = await fetch(`${API_URL}/events`);
+        const data = await res.json();
+        setEventos(data);
+      } catch (error) {
+        console.error("Error al cargar eventos", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los eventos.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchEventos();
+  }, []);
 
   const handleAgendar = (eventoId: number) => {
     if (!isAuthenticated) {
@@ -141,18 +128,15 @@ export default function EventosPage() {
       });
       setTimeout(() => {
         router.push("/login");
-      }, 1200); // 1.2 segundos para que vea el toast
+      }, 1200);
       return;
     }
-    
-    // Obtener el evento seleccionado
+
     const eventoSeleccionado = eventos.find(e => e.id === eventoId);
     if (!eventoSeleccionado) return;
 
-    // Obtener eventos reservados actuales del localStorage
     const eventosReservados = JSON.parse(localStorage.getItem('eventosReservados') || '[]');
-    
-    // Verificar si el evento ya está reservado
+
     if (eventosReservados.some((e: any) => e.id === eventoId)) {
       toast({
         title: "Evento ya reservado",
@@ -162,12 +146,9 @@ export default function EventosPage() {
       return;
     }
 
-    // Agregar el nuevo evento a la lista
     eventosReservados.push(eventoSeleccionado);
-    
-    // Guardar en localStorage
     localStorage.setItem('eventosReservados', JSON.stringify(eventosReservados));
-    
+
     toast({
       title: "¡Reserva exitosa!",
       description: "Has reservado tu lugar en el evento.",
@@ -176,7 +157,6 @@ export default function EventosPage() {
 
   return (
     <div className="min-h-screen pt-20 pb-16">
-      {/* Hero Section */}
       <div className="relative h-[300px] mb-16">
         <Image
           src="https://images.pexels.com/photos/2372978/pexels-photo-2372978.jpeg"
@@ -195,7 +175,6 @@ export default function EventosPage() {
       </div>
 
       <div className="container mx-auto px-4">
-        {/* Botón Crear evento solo para organizadores */}
         {user?.roles.includes('ORGANIZER') && (
           <div className="mb-10 flex justify-center">
             <Button asChild size="lg" className="px-8 py-4 text-lg font-semibold animate-bounce">
@@ -203,7 +182,7 @@ export default function EventosPage() {
             </Button>
           </div>
         )}
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {eventos.map((evento) => (
             <EventoCard key={evento.id} evento={evento} onAgendar={handleAgendar} />

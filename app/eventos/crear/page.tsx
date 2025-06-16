@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 const MALICIOUS_DOMAINS = ["porn", "sex", "xxx", "redtube", "xvideos", "xnxx", "hentai", "youporn", "brazzers", "camgirl", "cam4", "chaturbate", "xhamster", "spankbang", "tnaflix", "fapdu", "erotic", "escort", "bet365", "casino", "phishing", "malware", "virus"];
@@ -22,6 +23,7 @@ function isSafeUrl(url: string) {
 export default function CrearEventoPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { token } = useAuth();
   const [form, setForm] = useState({
     name: "",
     image1: "",
@@ -63,6 +65,24 @@ export default function CrearEventoPage() {
     }));
   };
 
+  const convertToTimeSlots = () => {
+    const dayMap: Record<string, number> = {
+      "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6, "Domingo": 7
+    };
+
+    const timeSlots: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
+
+    form.days.forEach(d => {
+      const dayNum = dayMap[d.day];
+      d.times.forEach(range => {
+        const [startTime, endTime] = range.split("-");
+        timeSlots.push({ dayOfWeek: dayNum, startTime, endTime });
+      });
+    });
+
+    return timeSlots;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -76,11 +96,27 @@ export default function CrearEventoPage() {
       return;
     }
 
+    const payload = {
+      name: form.name,
+      image1: form.image1,
+      description: form.description,
+      price: Number(form.price),
+      date: form.date || null,
+      days: [], // no se usa pero mantenido por compatibilidad
+      city: form.city,
+      address: form.address,
+      availableSpots: form.availableSpots ? Number(form.availableSpots) : null,
+      timeSlots: convertToTimeSlots(),
+    };
+
     try {
       const response = await fetch(`${API_URL}/events`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

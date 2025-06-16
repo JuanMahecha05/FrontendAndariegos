@@ -10,7 +10,7 @@ import {
   CardFooter, CardHeader, CardTitle
 } from '@/components/ui/card';
 import {
-  Clock, MapPin, Star, Users, MoreHorizontal
+  Clock, MapPin, Star, MoreHorizontal
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription,
@@ -56,9 +56,9 @@ export default function ToursPage() {
     }
   }, [token]);
 
-  const handleDeleteTour = async (id: number) => {
+  const handleDeleteTour = async (idTour: number) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/tours/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/tours/${idTour}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -66,7 +66,7 @@ export default function ToursPage() {
       });
       if (!res.ok) throw new Error("Error al eliminar tour");
 
-      setTours(prev => prev.filter(tour => tour.id !== id));
+      setTours(prev => prev.filter(tour => tour.idTour !== idTour));
     } catch (error) {
       console.error("Error eliminando tour:", error);
     }
@@ -82,24 +82,6 @@ export default function ToursPage() {
 
   return (
     <div className="min-h-screen pt-20 pb-16">
-      {/* Hero Section */}
-      <div className="relative h-[300px] mb-16">
-        <Image
-          src="https://images.pexels.com/photos/13447155/pexels-photo-13447155.jpeg"
-          alt="Tours en Bogotá"
-          fill
-          className="object-cover brightness-50"
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Tours en Bogotá</h1>
-            <p className="text-xl md:text-2xl max-w-2xl mx-auto px-4">
-              Explora la capital colombiana con nuestros tours guiados
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 space-y-16">
         {user?.roles.includes('ORGANIZER') && (
           <div className="mb-10 flex justify-center">
@@ -115,8 +97,8 @@ export default function ToursPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {tours.map((tour) => (
-              <TourCard key={tour.id} tour={tour} isOfficial={true} onDelete={handleDeleteTour} />
+            {tours.map(tour => (
+              <TourCard key={tour.idTour} tour={tour} onDelete={handleDeleteTour} />
             ))}
           </div>
         </section>
@@ -125,7 +107,7 @@ export default function ToursPage() {
   );
 }
 
-function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boolean; onDelete: (id: number) => void }) {
+function TourCard({ tour, onDelete }: { tour: any; onDelete: (id: number) => void }) {
   const [neon, setNeon] = useState('neon-yellow');
   const [isHovered, setIsHovered] = useState(false);
   const { user } = useAuth();
@@ -147,40 +129,27 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
     >
       <div className="relative h-52 w-full">
         <Image
-          src={tour.image}
-          alt={tour.title}
+          src={tour.events[0]?.image || "https://via.placeholder.com/400x300"}
+          alt={tour.name}
           fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover"
         />
       </div>
       <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-xl">{tour.title}</CardTitle>
-          <div className="flex items-center">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-            <span className="text-sm font-medium">{tour.rating}</span>
-          </div>
+          <CardTitle className="text-xl">{tour.name}</CardTitle>
         </div>
         <CardDescription>{tour.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <div className="flex items-center text-sm text-gray-500">
-            <Clock className="h-4 w-4 mr-2" />
-            <span>{tour.duration}</span>
-          </div>
-          <div className="flex items-center text-sm text-gray-500">
-            <MapPin className="h-4 w-4 mr-2" />
-            <span>{tour.location}</span>
-          </div>
           <div className="mt-4">
             <h4 className="font-semibold mb-2">Eventos incluidos:</h4>
             <ul className="space-y-2">
-              {tour.events?.length > 0 ? (
+              {tour.events.length > 0 ? (
                 tour.events.map((event: any, index: number) => (
                   <li key={index} className="text-sm text-gray-600">
-                    • {event.title}
+                    • {event.nameEvent}
                   </li>
                 ))
               ) : (
@@ -192,41 +161,18 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
       </CardContent>
       <CardFooter className="flex justify-between items-center">
         <div className="text-lg font-semibold">
-          {new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            maximumFractionDigits: 0
-          }).format(tour.price)}
+          {tour.events.length > 0
+            ? new Intl.NumberFormat('es-CO', {
+                style: 'currency',
+                currency: 'COP',
+                maximumFractionDigits: 0
+              }).format(tour.events.reduce((sum: number, ev: any) => sum + ev.price, 0))
+            : "—"}
         </div>
         <div className="flex gap-2">
-          {(!user || !user.roles.includes('ORGANIZER')) && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="default">Agendar Tour</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Confirmar Reserva</DialogTitle>
-                  <DialogDescription>
-                    ¿Estás seguro de que quieres agendar el tour <strong>{tour.title}</strong>?
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex justify-end gap-2 pt-4">
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancelar</Button>
-                  </DialogClose>
-                  <Link href={`/agendar-tour/${tour.id}`}>
-                    <Button>Confirmar</Button>
-                  </Link>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-
-          <Link href={`/tours/${tour.id}`}>
+          <Link href={`/tours/${tour.idTour}`}>
             <Button variant="outline">Ver detalles</Button>
           </Link>
-
           {user?.roles.includes('ORGANIZER') && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -238,7 +184,7 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
                 <DropdownMenuLabel>Administrar Tour</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/editar-tour/${tour.id}`}>
+                  <Link href={`/editar-tour/${tour.idTour}`}>
                     Editar Tour
                   </Link>
                 </DropdownMenuItem>
@@ -247,7 +193,7 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
                     <DropdownMenuItem asChild>
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-left font-normal text-red-600 hover:bg-red-50 focus:bg-red-50"
+                        className="w-full justify-start text-left font-normal text-red-600 hover:bg-red-50"
                       >
                         Eliminar
                       </Button>
@@ -257,14 +203,14 @@ function TourCard({ tour, isOfficial, onDelete }: { tour: any; isOfficial: boole
                     <DialogHeader>
                       <DialogTitle>Confirmar Eliminación</DialogTitle>
                       <DialogDescription>
-                        ¿Estás seguro de que deseas eliminar el tour <strong>{tour.title}</strong>?
+                        ¿Estás seguro de que deseas eliminar el tour <strong>{tour.name}</strong>?
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end gap-2 pt-4">
                       <DialogClose asChild>
                         <Button variant="outline">Cancelar</Button>
                       </DialogClose>
-                      <Button variant="destructive" onClick={() => onDelete(tour.id)}>Eliminar</Button>
+                      <Button variant="destructive" onClick={() => onDelete(tour.idTour)}>Eliminar</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
