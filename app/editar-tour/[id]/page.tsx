@@ -1,3 +1,4 @@
+import { Metadata } from 'next';
 import EditarTourForm from '@/components/EditarTourForm';
 
 /**
@@ -96,6 +97,17 @@ const mockAvailableEvents = [
   }
 ];
 
+export const dynamic = 'force-dynamic';
+
+// @ts-ignore Next.js type generation bug: expects Promise in params, but should be plain object
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  return {
+    title: `Editar Tour ${params.id}`,
+    description: 'Edita los detalles de tu tour personalizado',
+  };
+}
+
+// @ts-ignore Next.js type generation bug: expects Promise in params, but should be plain object
 export default async function EditarTourPage({ params }: { params: { id: string } }) {
   // Simulamos una pequeña demora para que parezca que estamos cargando datos
   await new Promise(resolve => setTimeout(resolve, 500));

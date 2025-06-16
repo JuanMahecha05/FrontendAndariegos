@@ -6,7 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 /**
  * Obtiene los eventos disponibles para crear un tour
  * 
- * La consulta GraphQL necesita los siguientes campos:
+ * La consulta REST necesita los siguientes campos:
  * - id: Identificador único del evento
  * - nombre: Nombre del evento
  * - descripcion: Descripción detallada del evento
@@ -26,7 +26,7 @@ async function getAvailableEvents() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...authHeaders,
+        ...(authHeaders as Record<string, string>),
       },
       body: JSON.stringify({
         query: `

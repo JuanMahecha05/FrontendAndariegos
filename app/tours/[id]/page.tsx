@@ -19,11 +19,11 @@ import {
 import Image from "next/image";
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 };
 
 export default function TourDetailPage({ params }: Props) {
-  const { id } = React.use(params);
+  const { id } = params;
   const tourId = parseInt(id);
   const [tour, setTour] = useState<any>(null);
   const router = useRouter();

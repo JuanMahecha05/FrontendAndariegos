@@ -157,8 +157,8 @@ export async function createTour(formData: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...authHeaders,
-      },
+        ...(authHeaders || {}),
+      } as HeadersInit,
       body: JSON.stringify({
         query: `
           mutation CreateTour($createTourInput: CreateTourInput!) {

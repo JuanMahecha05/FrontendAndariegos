@@ -1,7 +1,5 @@
 import { cookies } from 'next/headers'
 import { jwtDecode } from 'jwt-decode'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 
 export type User = {
   name: string
@@ -10,7 +8,7 @@ export type User = {
   roles: string[]
 }
 
-export async function getServerSession() {
+export async function getCustomServerSession() {
   const cookieStore = cookies()
   const token = cookieStore.get('access_token')?.value
 
@@ -54,12 +52,12 @@ export async function getAuthHeaders() {
 }
 
 export async function getSession() {
-  return await getServerSession()
+  return await getCustomServerSession()
 }
 
 export function isAuthenticated(roles?: string[]) {
   return async () => {
-    const session = await getServerSession()
+    const session = await getCustomServerSession()
     
     if (!session) {
       return false
