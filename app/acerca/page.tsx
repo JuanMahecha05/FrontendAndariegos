@@ -11,7 +11,7 @@ export default function AboutPage() {
         <div 
           className="absolute inset-0 z-0" 
           style={{
-            backgroundImage: 'url(https://images.pexels.com/photos/2662183/pexels-photo-2662183.jpeg)',
+            backgroundImage: 'url(/images/acercade.jpg)',
             backgroundPosition: 'center',
             backgroundSize: 'cover',
             backgroundRepeat: 'no-repeat',
@@ -58,7 +58,7 @@ export default function AboutPage() {
             </div>
             <div className="relative h-[400px] rounded-lg overflow-hidden">
               <Image
-                src="https://images.pexels.com/photos/2901209/pexels-photo-2901209.jpeg"
+                src="/images/iglesia.jpg"
                 alt="Experiencias auténticas en Colombia"
                 fill
                 className="object-cover"

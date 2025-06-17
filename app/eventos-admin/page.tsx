@@ -179,7 +179,7 @@ export default function EventosAdminPage() {
     <div className="min-h-screen pt-20 pb-16">
       <div className="relative h-[300px] mb-16">
         <Image
-          src="https://images.pexels.com/photos/2372978/pexels-photo-2372978.jpeg"
+          src="/images/eventosimg.jpg"
           alt="Administración de Eventos"
           fill
           className="object-cover brightness-50"

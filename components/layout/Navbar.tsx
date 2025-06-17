@@ -45,6 +45,7 @@ export default function Navbar() {
     { href: "/tours", label: "Tours" },
     { href: "/eventos", label: "Eventos" },
     { href: "/acerca", label: "Acerca de" },
+    { href: "/preguntas-frecuentes", label: "Preguntas Frecuentes" },
     { href: "/contacto", label: "Contacto" },
   ];
 
