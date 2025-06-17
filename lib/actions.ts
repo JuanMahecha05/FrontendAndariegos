@@ -3,10 +3,18 @@
 import { cookies } from 'next/headers'
 import { getAuthHeaders } from './server-utils'
 import { jwtDecode } from 'jwt-decode'
+import { redirect } from 'next/navigation'
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL
 
-export async function login(identifier: string, password: string) {
+export async function login(formData: FormData) {
+  const identifier = formData.get('identifier') as string
+  const password = formData.get('password') as string
+
+  if (!identifier || !password) {
+    throw new Error('Email y contraseña son requeridos')
+  }
+
   try {
     const response = await fetch('http://localhost:7080/api/auth/login', {
       method: 'POST',
@@ -36,7 +44,7 @@ export async function login(identifier: string, password: string) {
       name: user.name,
       username: user.username,
       email: user.email,
-      roles: roles, // Usamos los roles del token decodificado
+      roles: roles,
       id: user._id
     }
 
@@ -50,9 +58,9 @@ export async function login(identifier: string, password: string) {
       maxAge: 7 * 24 * 60 * 60, // 7 días
     })
 
-    return { user: transformedUser }
-  } catch (error) {
-    throw error
+    redirect('/')
+  } catch (error: any) {
+    throw new Error(error.message || 'Error al iniciar sesión')
   }
 }
 

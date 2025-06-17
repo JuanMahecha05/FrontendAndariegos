@@ -1,8 +1,16 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { LoginForm } from '@/components/auth/LoginForm'
+import { redirect } from 'next/navigation'
+import { getCustomServerSession } from '@/lib/server-utils'
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Si el usuario ya está autenticado, redirigir a la página principal
+  const session = await getCustomServerSession()
+  if (session) {
+    redirect('/')
+  }
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
       {/* Image Section */}
@@ -24,7 +32,7 @@ export default function LoginPage() {
       </div>
       
       {/* Form Section */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-6 sm:p-12">
+      <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex justify-center md:justify-start mb-8">
             <Link href="/" className="flex items-center text-2xl font-bold text-primary">

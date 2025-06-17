@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast'
 import { login } from '@/lib/actions'
 
 const loginSchema = z.object({
-  email: z
+  identifier: z
     .string()
     .min(1, { message: 'El correo electrónico es requerido' })
     .email({ message: 'Formato de correo electrónico inválido' }),
@@ -41,24 +41,16 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   })
 
-  const onSubmit = async (data: LoginFormValues) => {
+  async function onSubmit(formData: FormData) {
     setIsLoading(true)
     
     try {
-      const { user } = await login(data.email, data.password)
-      
-      toast({
-        title: '¡Inicio de sesión exitoso!',
-        description: `Bienvenido, ${user.name}`,
-      })
-
-      router.push('/')
-      router.refresh()
+      await login(formData)
     } catch (error: any) {
       toast({
         title: 'Error al iniciar sesión',
@@ -77,10 +69,10 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form action={onSubmit} className="space-y-6">
         <FormField
           control={form.control}
-          name="email"
+          name="identifier"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Correo electrónico</FormLabel>
