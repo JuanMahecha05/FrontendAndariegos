@@ -159,10 +159,11 @@ export default function EventosPage() {
     <div className="min-h-screen pt-20 pb-16">
       <div className="relative h-[300px] mb-16">
         <Image
-          src="https://images.pexels.com/photos/2372978/pexels-photo-2372978.jpeg"
+          src="/images/eventosimg.jpg"
           alt="Eventos en Bogotá"
-          fill
-          className="object-cover brightness-50"
+          width={1920}
+          height={600}
+          className="w-full h-full object-cover brightness-50"
         />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white">
