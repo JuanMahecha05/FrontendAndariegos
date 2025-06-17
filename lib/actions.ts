@@ -2,44 +2,43 @@
 
 import { cookies } from 'next/headers'
 import { getAuthHeaders } from './server-utils'
+import { jwtDecode } from 'jwt-decode'
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL
 
 export async function login(identifier: string, password: string) {
   try {
-    const response = await fetch(`${API_URL}/graphql`, {
+    const response = await fetch('http://localhost:7080/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: `
-          mutation Login($identifier: String!, $password: String!) {
-            login(identifier: $identifier, password: $password) {
-              access_token
-              user {
-                name
-                username
-                email
-                roles
-              }
-            }
-          }
-        `,
-        variables: {
-          identifier,
-          password,
-        },
+        identifier,
+        password,
       }),
     })
 
     const data = await response.json()
 
-    if (data.errors) {
-      throw new Error(data.errors[0].message)
+    if (!response.ok) {
+      throw new Error(data.message || 'Error al iniciar sesión')
     }
 
-    const { access_token, user } = data.data.login
+    const { access_token, user } = data
+
+    // Decodificar el token para obtener los roles
+    const decodedToken = jwtDecode(access_token)
+    const roles = (decodedToken as any).roles || ['USER']
+
+    // Transformar el usuario al formato esperado por el frontend
+    const transformedUser = {
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      roles: roles, // Usamos los roles del token decodificado
+      id: user._id
+    }
 
     // Guardar el token en una cookie HTTP-only
     const cookieStore = cookies()
@@ -51,7 +50,7 @@ export async function login(identifier: string, password: string) {
       maxAge: 7 * 24 * 60 * 60, // 7 días
     })
 
-    return { user }
+    return { user: transformedUser }
   } catch (error) {
     throw error
   }
@@ -121,11 +120,6 @@ export async function logout() {
  *   - precio: Costo del evento
  *   - imagen: URL de la imagen
  * 
- * La mutación GraphQL necesita:
- * - createTourInput: Objeto con los datos del tour
- *   - title: Título del tour
- *   - description: Descripción del tour
- *   - eventIds: Array de IDs de los eventos seleccionados
  * 
  * @returns Objeto con el resultado de la operación
  *   - success: boolean - Indica si la operación fue exitosa
