@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { getAuthHeaders } from './server-utils'
 import { jwtDecode } from 'jwt-decode'
 import { redirect } from 'next/navigation'
+import { decryptToken, isValidJWT } from './utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL
 
@@ -35,8 +36,14 @@ export async function login(formData: FormData) {
 
     const { access_token, user } = data
 
+    // Procesar el token (desencriptar si es necesario)
+    let processedToken = access_token;
+    if (!isValidJWT(access_token)) {
+      processedToken = decryptToken(access_token);
+    }
+
     // Decodificar el token para obtener los roles
-    const decodedToken = jwtDecode(access_token)
+    const decodedToken = jwtDecode(processedToken)
     const roles = (decodedToken as any).roles || ['USER']
 
     // Transformar el usuario al formato esperado por el frontend
@@ -50,7 +57,7 @@ export async function login(formData: FormData) {
 
     // Guardar el token en una cookie HTTP-only
     const cookieStore = cookies()
-    cookieStore.set('access_token', access_token, {
+    cookieStore.set('access_token', processedToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -59,7 +66,7 @@ export async function login(formData: FormData) {
     })
 
     // También guardar una cookie no HTTP-only para el cliente
-    cookieStore.set('client_token', access_token, {
+    cookieStore.set('client_token', processedToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -67,7 +74,8 @@ export async function login(formData: FormData) {
       maxAge: 7 * 24 * 60 * 60, // 7 días
     })
 
-    redirect('/')
+    // Retornar el token para que el cliente lo procese
+    return { success: true, token: processedToken, user: transformedUser }
   } catch (error: any) {
     throw new Error(error.message || 'Error al iniciar sesión')
   }

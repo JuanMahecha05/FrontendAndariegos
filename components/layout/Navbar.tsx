@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User } from "lucide-react";
+import { Menu, X, User, Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import Image from "next/image";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -22,7 +22,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,6 +37,17 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Escuchar cambios en el estado de autenticación
+  useEffect(() => {
+    const handleAuthChange = () => {
+      // Forzar re-render cuando cambie el estado de auth
+      console.log('Auth state changed, user:', user);
+    };
+
+    window.addEventListener('auth-state-changed', handleAuthChange);
+    return () => window.removeEventListener('auth-state-changed', handleAuthChange);
+  }, [user]);
+
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -48,6 +59,36 @@ export default function Navbar() {
     { href: "/preguntas-frecuentes", label: "Preguntas Frecuentes" },
     { href: "/contacto", label: "Contacto" },
   ];
+
+  // Mostrar spinner mientras se carga la autenticación
+  if (isLoading) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background shadow-md">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <div className="relative h-20 w-80">
+              <Image
+                src="/images/Logolight.png"
+                alt="Andariegos Logo"
+                fill
+                className="object-contain dark:hidden"
+              />
+              <Image
+                src="/images/Logodark.png"
+                alt="Andariegos Logo"
+                fill
+                className="object-contain hidden dark:block"
+              />
+            </div>
+          </Link>
+          <div className="flex items-center space-x-4">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background shadow-md">
@@ -93,7 +134,7 @@ export default function Navbar() {
           </ul>
 
           <div className="flex items-center space-x-4">
-            {!user ? (
+            {!isAuthenticated ? (
               <>
                 <Button
                   asChild
@@ -118,9 +159,9 @@ export default function Navbar() {
                     <Avatar className="h-8 w-8">
                       <AvatarImage
                         src="/avatars/01.png"
-                        alt={user.name}
+                        alt={user?.name || ''}
                       />
-                      <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -128,15 +169,15 @@ export default function Navbar() {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {user.name}
+                        {user?.name}
                       </p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
+                        {user?.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {user.roles.includes('ORGANIZER') && (
+                  {user?.roles?.includes('ORGANIZER') && (
                     <DropdownMenuItem asChild>
                       <Link href="/eventos-admin">
                         Gestionar Eventos
@@ -198,23 +239,73 @@ export default function Navbar() {
             </ul>
 
             <div className="flex flex-col space-y-4 mt-6">
-              <Button
-                asChild
-                variant="outline"
-                className="w-full hover:bg-secondary hover:text-secondary-foreground"
-              >
-                <Link href="/login" onClick={closeMenu}>
-                  Iniciar sesión
-                </Link>
-              </Button>
-              <Button
-                asChild
-                className="w-full bg-primary hover:bg-primary/90 text-white dark:bg-white dark:text-primary dark:hover:bg-white/90"
-              >
-                <Link href="/register" onClick={closeMenu}>
-                  Registrarse
-                </Link>
-              </Button>
+              {!isAuthenticated ? (
+                <>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full hover:bg-secondary hover:text-secondary-foreground"
+                  >
+                    <Link href="/login" onClick={closeMenu}>
+                      Iniciar sesión
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className="w-full bg-primary hover:bg-primary/90 text-white dark:bg-white dark:text-primary dark:hover:bg-white/90"
+                  >
+                    <Link href="/register" onClick={closeMenu}>
+                      Registrarse
+                    </Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center space-x-2 p-2">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src="/avatars/01.png"
+                        alt={user?.name || ''}
+                      />
+                      <AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{user?.name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    </div>
+                  </div>
+                  {user?.roles?.includes('ORGANIZER') && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Link href="/eventos-admin" onClick={closeMenu}>
+                        Gestionar Eventos
+                      </Link>
+                    </Button>
+                  )}
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Link href="/eventos-reservados" onClick={closeMenu}>
+                      Mis Reservas
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => {
+                      logout();
+                      closeMenu();
+                    }}
+                  >
+                    Cerrar sesión
+                  </Button>
+                </>
+              )}
               <div className="flex justify-center pt-4 border-t border-border">
                 <ThemeToggle />
               </div>
