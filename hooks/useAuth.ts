@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth as useAuthContext } from './AuthContext'
+import Cookies from 'js-cookie'
 // import { UserRole } from '@/lib/roles' // Descomentar cuando el enum esté disponible
 
 export type UserRole = 'user' | 'organizador' | 'admin' // Temporal, reemplazar por el enum
@@ -12,32 +14,28 @@ export interface AuthUser {
   role: UserRole
 }
 
-export function useAuth() {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [loading, setLoading] = useState(true)
+export const useAuth = () => {
+  const authContext = useAuthContext()
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    // Simulación: obtener usuario y rol desde localStorage o JWT
-    const stored = localStorage.getItem('authUser')
-    if (stored) {
-      setUser(JSON.parse(stored))
-    }
-    setLoading(false)
+    setIsClient(true)
   }, [])
 
-  const login = (userData: AuthUser) => {
-    setUser(userData)
-    localStorage.setItem('authUser', JSON.stringify(userData))
-  }
-
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem('authUser')
-  }
+  // Verificar si hay un token en las cookies al montar el componente
+  useEffect(() => {
+    if (isClient && !authContext.isAuthenticated) {
+      const token = Cookies.get('client_token')
+      if (token) {
+        // El contexto ya debería haber cargado el token, pero por si acaso
+        console.log('Token encontrado en cookies, verificando...')
+      }
+    }
+  }, [isClient, authContext.isAuthenticated])
 
   const handleAuthAction = (action: () => void) => {
-    if (!user) {
+    if (!authContext.user) {
       router.push('/login')
     } else {
       action()
@@ -45,11 +43,8 @@ export function useAuth() {
   }
 
   return {
-    user,
-    loading,
-    isAuthenticated: !!user,
-    login,
-    logout,
+    ...authContext,
+    isClient,
     handleAuthAction
   }
 } 

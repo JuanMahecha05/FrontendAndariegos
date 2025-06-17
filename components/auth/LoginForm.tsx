@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
 import { login } from '@/lib/actions'
+import { useAuth } from '@/hooks/AuthContext'
 
 const loginSchema = z.object({
   identifier: z
@@ -37,6 +38,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+  const { login: authLogin } = useAuth()
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -50,7 +52,20 @@ export function LoginForm() {
     setIsLoading(true)
     
     try {
-      await login(formData)
+      const result = await login(formData)
+      
+      if (result.success && result.token) {
+        // Usar el contexto de autenticación para procesar el token
+        authLogin(result.token)
+        
+        toast({
+          title: 'Sesión iniciada',
+          description: 'Has iniciado sesión correctamente.',
+        })
+        
+        // Redirigir al usuario
+        router.push('/')
+      }
     } catch (error: any) {
       toast({
         title: 'Error al iniciar sesión',
