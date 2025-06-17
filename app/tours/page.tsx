@@ -36,7 +36,7 @@ export default function ToursPage() {
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/tours`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/tours`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
