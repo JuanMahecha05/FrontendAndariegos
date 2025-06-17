@@ -58,6 +58,15 @@ export async function login(formData: FormData) {
       maxAge: 7 * 24 * 60 * 60, // 7 días
     })
 
+    // También guardar una cookie no HTTP-only para el cliente
+    cookieStore.set('client_token', access_token, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60, // 7 días
+    })
+
     redirect('/')
   } catch (error: any) {
     throw new Error(error.message || 'Error al iniciar sesión')

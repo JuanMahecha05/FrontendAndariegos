@@ -1,5 +1,6 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
+import Cookies from "js-cookie";
 
 console.log("API Gateway URL:", process.env.NEXT_PUBLIC_API_GATEWAY_URL);
 const httpLink = createHttpLink({
@@ -7,8 +8,7 @@ const httpLink = createHttpLink({
 });
 
 const authLink = setContext((_, { headers }) => {
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const token = Cookies.get("client_token");
   return {
     headers: {
       ...headers,

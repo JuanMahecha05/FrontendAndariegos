@@ -27,12 +27,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
 
   const login = (token: string) => {
     try {
       const decoded = jwtDecode<User & { roles: Role[] }>(token);
-      Cookies.set('access_token', token, {
+      Cookies.set('client_token', token, {
         expires: 7,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'Lax',
@@ -40,6 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       setUser(decoded);
       setToken(token);
+      setIsInitialized(true);
     } catch (error) {
       console.error('Token inválido:', error);
       logout();
@@ -47,14 +49,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = () => {
-    Cookies.remove('access_token');
+    Cookies.remove('client_token');
     setUser(null);
     setToken(null);
+    setIsInitialized(true);
     router.push('/');
   };
 
   useEffect(() => {
-    const storedToken = Cookies.get('access_token');
+    const storedToken = Cookies.get('client_token');
     if (storedToken) {
       try {
         const decoded = jwtDecode<User & { roles: Role[] }>(storedToken);
@@ -65,7 +68,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         logout();
       }
     }
+    setIsInitialized(true);
   }, []);
+
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, token, login, logout }}>
