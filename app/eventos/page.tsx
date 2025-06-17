@@ -119,8 +119,8 @@ export default function EventosPage() {
     fetchEventos();
   }, []);
 
-  const handleAgendar = (eventoId: number) => {
-    if (!isAuthenticated) {
+  const handleAgendar = async (eventoId: number) => {
+    if (!isAuthenticated || !user) {
       toast({
         title: "Inicia sesión",
         description: "Debes iniciar sesión para agendar eventos",
@@ -135,8 +135,8 @@ export default function EventosPage() {
     const eventoSeleccionado = eventos.find(e => e.id === eventoId);
     if (!eventoSeleccionado) return;
 
+    // Validar si ya está reservado
     const eventosReservados = JSON.parse(localStorage.getItem('eventosReservados') || '[]');
-
     if (eventosReservados.some((e: any) => e.id === eventoId)) {
       toast({
         title: "Evento ya reservado",
@@ -146,13 +146,43 @@ export default function EventosPage() {
       return;
     }
 
-    eventosReservados.push(eventoSeleccionado);
-    localStorage.setItem('eventosReservados', JSON.stringify(eventosReservados));
+    // Fecha actual (ajustar si quieres usar fechas del evento)
+    const booking_date = new Date().toISOString().split('T')[0];
+    const booking_time = "11:00"; // Puedes modificar para que se obtenga del evento si se desea
 
-    toast({
-      title: "¡Reserva exitosa!",
-      description: "Has reservado tu lugar en el evento.",
-    });
+    try {
+      const response = await fetch(`${API_URL}/events/registration`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          eventId: eventoId,
+          userId: user.username || user.email || user.name, // Asegúrate de usar el ID real
+          booking_time,
+          booking_date
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Error al agendar");
+      }
+
+      eventosReservados.push(eventoSeleccionado);
+      localStorage.setItem('eventosReservados', JSON.stringify(eventosReservados));
+
+      toast({
+        title: "¡Reserva exitosa!",
+        description: `Has reservado tu lugar en el evento.`,
+      });
+    } catch (error) {
+      console.error("Error al agendar evento:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo realizar la reserva.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
