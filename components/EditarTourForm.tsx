@@ -29,6 +29,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { updateTour } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
 
 interface Horario {
   fecha: string;
@@ -143,12 +144,14 @@ interface EditarTourFormProps {
 
 export default function EditarTourForm({ tour, availableEvents }: EditarTourFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [selectedEvents, setSelectedEvents] = useState<Evento[]>(tour.events);
   const [totalPrice, setTotalPrice] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const eventsPerPage = 9;
 
   console.log('EditarTourForm props:', { tour, availableEvents });
@@ -219,12 +222,31 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
   const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
 
   const onSubmit = async (values: FormValues) => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
     try {
       console.log('Submitting form with values:', values);
+      
+      // Validar que los eventos seleccionados existen
+      const validEvents = selectedEvents.filter(evento => 
+        availableEvents.some(available => available.id === evento.id)
+      );
+      
+      if (validEvents.length === 0) {
+        toast({
+          title: "Error",
+          description: "Debes seleccionar al menos un evento válido",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const result = await updateTour(tour.id, {
         title: values.title,
         description: values.description,
-        events: selectedEvents.map(evento => ({
+        events: validEvents.map(evento => ({
           id: Number(evento.id),
           nombre: evento.nombre,
           descripcion: evento.descripcion,
@@ -236,12 +258,31 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
       });
 
       if (result.success) {
-        router.push('/tours');
+        toast({
+          title: "¡Éxito!",
+          description: result.message || "Tour actualizado correctamente",
+        });
+        
+        // Redirigir después de un breve delay para que el usuario vea la notificación
+        setTimeout(() => {
+          router.push('/tours');
+        }, 1500);
       } else {
-        console.error('Error updating tour:', result.message);
+        toast({
+          title: "Error",
+          description: result.message || "Error al actualizar el tour",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error submitting form:', error);
+      toast({
+        title: "Error inesperado",
+        description: "Ocurrió un error al actualizar el tour. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -444,7 +485,13 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
                 </div>
               )}
 
-              <Button type="submit" className="w-full">Guardar Cambios</Button>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+              </Button>
             </form>
           </Form>
         </CardContent>

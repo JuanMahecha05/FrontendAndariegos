@@ -5,6 +5,7 @@ import { getAuthHeaders } from './server-utils'
 import { jwtDecode } from 'jwt-decode'
 import { redirect } from 'next/navigation'
 import { decryptToken, isValidJWT } from './utils'
+import { getCustomServerSession } from './server-utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL
 
@@ -225,45 +226,16 @@ export async function createTour(formData: {
 /**
  * Actualiza un tour existente
  * 
- * TODO: Implementar cuando el backend esté disponible
+ * @param tourId - ID del tour a actualizar
+ * @param formData - Datos del tour a actualizar
+ * @param formData.title - Título del tour (se mapea a 'name' en la API)
+ * @param formData.description - Descripción del tour
+ * @param formData.events - Array de eventos seleccionados para el tour
  * 
- * La API necesitará:
- * 
- * 1. Endpoint: PUT /tours/{id}
- * 
- * 2. Headers requeridos:
- *    - Content-Type: application/json
- *    - Authorization: Bearer {token}
- * 
- * 3. Body de la petición:
- *    {
- *      "title": string,
- *      "description": string,
- *      "events": Array<{
- *        "id": string | number,
- *        "nombre": string,
- *        "descripcion": string,
- *        "ubicacion": string,
- *        "duracion": number,
- *        "precio": number,
- *        "imagen": string
- *      }>
- *    }
- * 
- * 4. Respuesta esperada:
- *    {
- *      "success": boolean,
- *      "message": string,
- *      "tour": {
- *        "id": string,
- *        "title": string,
- *        "description": string,
- *        "events": Array<{
- *          "id": string | number,
- *          "nombre": string
- *        }>
- *      }
- *    }
+ * @returns Objeto con el resultado de la operación
+ *   - success: boolean - Indica si la operación fue exitosa
+ *   - message: string - Mensaje descriptivo del resultado
+ *   - tour: object (opcional) - Datos del tour actualizado
  */
 export async function updateTour(tourId: string, formData: {
   title: string;
@@ -281,23 +253,170 @@ export async function updateTour(tourId: string, formData: {
   'use server'
   
   try {
-    // Simulamos una pequeña demora para que parezca que estamos procesando
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const session = await getCustomServerSession();
+    if (!session) {
+      return { 
+        success: false, 
+        message: 'No tienes permisos para actualizar tours'
+      };
+    }
 
-    // Por ahora, siempre devolvemos éxito
+    // Extraer el ID del usuario del token
+    const decodedToken = jwtDecode(session.token);
+    const userId = (decodedToken as any).sub || (decodedToken as any).id;
+
+    const response = await fetch(`${API_URL}/api/tours/${tourId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.token}`,
+      },
+      body: JSON.stringify({
+        idUser: userId,
+        name: formData.title,
+        description: formData.description,
+        eventsIds: formData.events.map(event => event.id),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
     return { 
       success: true, 
       message: 'Tour actualizado exitosamente',
       tour: {
-        id: tourId,
-        ...formData
+        id: data.idTour,
+        title: data.name,
+        description: data.description,
+        events: formData.events
       }
     };
   } catch (error) {
     console.error('Error updating tour:', error);
     return { 
       success: false, 
-      message: 'Error al actualizar el tour'
+      message: error instanceof Error ? error.message : 'Error al actualizar el tour'
+    };
+  }
+}
+
+/**
+ * Obtiene un tour específico por ID
+ * 
+ * @param tourId - ID del tour a obtener
+ * @returns Objeto con el resultado de la operación
+ *   - success: boolean - Indica si la operación fue exitosa
+ *   - message: string - Mensaje descriptivo del resultado
+ *   - tour: object (opcional) - Datos del tour
+ */
+export async function getTourById(tourId: string) {
+  'use server'
+  
+  try {
+    const session = await getCustomServerSession();
+    if (!session) {
+      return { 
+        success: false, 
+        message: 'No tienes permisos para ver tours'
+      };
+    }
+
+    console.log(`Fetching tour with ID: ${tourId}`);
+    
+    const response = await fetch(`${API_URL}/api/tours/${tourId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`Error fetching tour ${tourId}:`, errorData);
+      throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Tour data received:`, data);
+
+    // Transformar los datos al formato esperado por el frontend
+    const transformedTour = {
+      id: data.idTour?.toString() || tourId,
+      title: data.name || data.title || '',
+      description: data.description || '',
+      events: data.events || data.eventIds || []
+    };
+
+    console.log(`Transformed tour:`, transformedTour);
+
+    return { 
+      success: true, 
+      message: 'Tour obtenido exitosamente',
+      tour: transformedTour
+    };
+  } catch (error) {
+    console.error('Error getting tour:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Error al obtener el tour'
+    };
+  }
+}
+
+/**
+ * Obtiene todos los eventos disponibles
+ * 
+ * @returns Objeto con el resultado de la operación
+ *   - success: boolean - Indica si la operación fue exitosa
+ *   - message: string - Mensaje descriptivo del resultado
+ *   - events: array (opcional) - Lista de eventos disponibles
+ */
+export async function getAvailableEvents() {
+  'use server'
+  
+  try {
+    const session = await getCustomServerSession();
+    if (!session) {
+      return { 
+        success: false, 
+        message: 'No tienes permisos para ver eventos'
+      };
+    }
+
+    console.log('Fetching available events...');
+    
+    const response = await fetch(`${API_URL}/api/events`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error fetching events:', errorData);
+      throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Events data received:`, data);
+
+    return { 
+      success: true, 
+      message: 'Eventos obtenidos exitosamente',
+      events: data || []
+    };
+  } catch (error) {
+    console.error('Error getting events:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Error al obtener los eventos',
+      events: []
     };
   }
 } 
