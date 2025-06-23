@@ -3,60 +3,37 @@ import { getAuthHeaders } from '@/lib/server-utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
-/**
- * Obtiene los eventos disponibles para crear un tour
- * 
- * La consulta REST necesita los siguientes campos:
- * - id: Identificador único del evento
- * - nombre: Nombre del evento
- * - descripcion: Descripción detallada del evento
- * - ubicacion: Lugar donde se realiza el evento
- * - duracion: Duración en horas del evento
- * - precio: Costo del evento
- * - imagen: URL de la imagen del evento
- * - horarios: Array de horarios disponibles
- *   - fecha: Fecha del horario (YYYY-MM-DD)
- *   - inicio: Hora de inicio (HH:mm) (se obtiene del primer evento en la secuencia)
- *   - fin: Hora de finalización (HH:mm) (se obtiene del último evento en la secuencia)
- */
 async function getAvailableEvents() {
   try {
     const authHeaders = await getAuthHeaders();
-    const response = await fetch(`${API_URL}/graphql`, {
-      method: 'POST',
+    const response = await fetch(`${API_URL}/events`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
         ...(authHeaders as Record<string, string>),
       },
-      body: JSON.stringify({
-        query: `
-          query GetAvailableEvents {
-            events {
-              id
-              nombre
-              descripcion
-              ubicacion
-              duracion
-              precio
-              imagen
-              horarios {
-                fecha
-                inicio
-                fin
-              }
-            }
-          }
-        `,
-      }),
     });
 
     const data = await response.json();
 
-    if (data.errors) {
-      throw new Error(data.errors[0].message);
+    if (!Array.isArray(data)) {
+      throw new Error("Formato de eventos inválido");
     }
 
-    return data.data.events;
+    return data.map((evento: any) => ({
+      id: evento.id,
+      nombre: evento.name,
+      descripcion: evento.description,
+      ubicacion: evento.address,
+      duracion: evento.duration,
+      precio: evento.price,
+      imagen: evento.image1,
+      horarios: evento.eventTimes?.map((et: any) => ({
+        fecha: et.date || '2025-01-01', // fecha dummy si no hay
+        inicio: et.availabilityPattern?.startTime || '08:00',
+        fin: et.availabilityPattern?.endTime || '10:00',
+      })) || []
+    }));
   } catch (error) {
     console.error('Error fetching events:', error);
     return [];

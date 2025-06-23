@@ -83,38 +83,23 @@ export default function EventosAdminPage() {
       return;
     }
 
-    if (!user?.roles?.includes("ORGANIZER")) {
+    if (!user?.roles?.includes("ORGANIZER") && !user?.roles?.includes("ADMIN")) {
       router.push("/");
       return;
     }
 
     const fetchEventos = async () => {
       try {
-        const res = await fetch(`${API_URL}/events/by-organizer/${user.username}`, {
+        const res = await fetch(`${API_URL}/events`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
         if (!res.ok) throw new Error("Error al cargar eventos");
+
         const data = await res.json();
-
-        // Fetch inscritos por cada evento
-        const withInscritos = await Promise.all(
-          data.map(async (event: Evento) => {
-            try {
-              const resInscritos = await fetch(`${API_URL}/events/${event.id}/attendees`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const inscritos = resInscritos.ok ? await resInscritos.json() : [];
-              return { ...event, inscritos };
-            } catch {
-              return { ...event, inscritos: [] };
-            }
-          })
-        );
-
-        setEventos(withInscritos);
+        setEventos(data); // Todos los eventos son del organizador
       } catch (err) {
         toast({
           title: "Error al cargar eventos",
@@ -125,9 +110,9 @@ export default function EventosAdminPage() {
         setLoading(false);
       }
     };
-
-    fetchEventos();
+  fetchEventos();
   }, [isAuthenticated, user, token, router, toast]);
+
 
   const handleEdit = (eventId: number) => {
     router.push(`/eventos/editar/${eventId}`);

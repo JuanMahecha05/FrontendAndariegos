@@ -8,6 +8,15 @@ import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react';
 import { useAuth } from '@/hooks/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog";
 
 const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
 function getRandomNeonColor(exclude: string): string {
@@ -17,9 +26,12 @@ function getRandomNeonColor(exclude: string): string {
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
-function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (id: number) => void }) {
+function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: any) => void }) {
   const [neon, setNeon] = React.useState('neon-yellow');
   const [isHovered, setIsHovered] = React.useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
 
   const handleMouseEnter = () => {
     setIsHovered(true);
@@ -82,9 +94,20 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (id: number
         </div>
       </CardContent>
       <CardFooter>
-        <Button 
+        <Button
           className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
-          onClick={() => onAgendar(evento.id)}
+          onClick={() => {
+            if (!isAuthenticated || !user) {
+              toast({
+                title: "Inicia sesión",
+                description: "Debes iniciar sesión para agendar eventos",
+                variant: "destructive",
+              });
+              setTimeout(() => router.push("/login"), 1200);
+              return;
+            }
+            onAgendar(evento);
+          }}
         >
           Agendar
         </Button>
@@ -96,9 +119,10 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (id: number
 export default function EventosPage() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
-  const router = useRouter();
-
   const [eventos, setEventos] = useState<any[]>([]);
+  const [selectedEvento, setSelectedEvento] = useState<any | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false); // 🔥 Nuevo estado
 
   useEffect(() => {
     const fetchEventos = async () => {
@@ -115,66 +139,49 @@ export default function EventosPage() {
         });
       }
     };
-
     fetchEventos();
   }, []);
 
-  const handleAgendar = async (eventoId: number) => {
-    if (!isAuthenticated || !user) {
-      toast({
-        title: "Inicia sesión",
-        description: "Debes iniciar sesión para agendar eventos",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        router.push("/login");
-      }, 1200);
-      return;
-    }
+  const confirmAgendar = (evento: any) => {
+    setSelectedEvento(evento);
+    setShowConfirmDialog(true);
+  };
 
-    const eventoSeleccionado = eventos.find(e => e.id === eventoId);
-    if (!eventoSeleccionado) return;
+  const realizarAgendamiento = async () => {
+    if (!selectedEvento || !user) return;
 
-    // Validar si ya está reservado
     const eventosReservados = JSON.parse(localStorage.getItem('eventosReservados') || '[]');
-    if (eventosReservados.some((e: any) => e.id === eventoId)) {
+    if (eventosReservados.some((e: any) => e.id === selectedEvento.id)) {
       toast({
         title: "Evento ya reservado",
         description: "Ya tienes una reserva para este evento.",
         variant: "destructive"
       });
+      setShowConfirmDialog(false);
       return;
     }
 
-    // Fecha actual (ajustar si quieres usar fechas del evento)
     const booking_date = new Date().toISOString().split('T')[0];
-    const booking_time = "11:00"; // Puedes modificar para que se obtenga del evento si se desea
+    const booking_time = "11:00";
 
     try {
       const response = await fetch(`${API_URL}/events/registration`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventId: eventoId,
-          userId: user.username || user.email || user.name, // Asegúrate de usar el ID real
+          eventId: selectedEvento.id,
+          userId: user.username || user.email || user.name,
           booking_time,
           booking_date
         })
       });
 
-      if (!response.ok) {
-        throw new Error("Error al agendar");
-      }
+      if (!response.ok) throw new Error("Error al agendar");
 
-      eventosReservados.push(eventoSeleccionado);
+      eventosReservados.push(selectedEvento);
       localStorage.setItem('eventosReservados', JSON.stringify(eventosReservados));
 
-      toast({
-        title: "¡Reserva exitosa!",
-        description: `Has reservado tu lugar en el evento.`,
-      });
+      setShowSuccessDialog(true); // ✅ Mostrar diálogo de éxito
     } catch (error) {
       console.error("Error al agendar evento:", error);
       toast({
@@ -182,6 +189,8 @@ export default function EventosPage() {
         description: "No se pudo realizar la reserva.",
         variant: "destructive"
       });
+    } finally {
+      setShowConfirmDialog(false);
     }
   };
 
@@ -216,10 +225,47 @@ export default function EventosPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {eventos.map((evento) => (
-            <EventoCard key={evento.id} evento={evento} onAgendar={handleAgendar} />
+            <EventoCard key={evento.id} evento={evento} onAgendar={confirmAgendar} />
           ))}
         </div>
       </div>
+
+      {/* Diálogo de confirmación */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar reserva</DialogTitle>
+            <DialogDescription>
+              ¿Deseas reservar un cupo para el evento <strong>{selectedEvento?.name}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2">
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button onClick={realizarAgendamiento} className="bg-green-600 hover:bg-green-700 text-white">
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de éxito */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reserva confirmada</DialogTitle>
+            <DialogDescription>
+              Has reservado exitosamente tu lugar en el evento <strong>{selectedEvento?.name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end">
+            <Button onClick={() => setShowSuccessDialog(false)} className="bg-primary text-white">
+              Aceptar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
