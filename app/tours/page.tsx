@@ -10,7 +10,7 @@ import {
   CardFooter, CardHeader, CardTitle
 } from '@/components/ui/card';
 import {
-  Clock, MapPin, Star, MoreHorizontal
+  Clock, MapPin, Star, MoreHorizontal, Loader2
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription,
@@ -95,12 +95,12 @@ export default function ToursPage() {
         )}
 
         {loading ? (
-          <p className="text-muted-foreground text-center text-lg">Cargando tours...</p>
+          <div className="flex flex-col items-center justify-center py-10">
+            <Loader2 className="h-10 w-10 animate-spin text-gray-600 mb-4" />
+            <p className="text-lg text-gray-600">Cargando tours...</p>
+          </div>
         ) : (
           <section>
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-primary dark:text-white">Tours</h2>
-            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {tours.map(tour => (
                 <TourCard key={tour.idTour} tour={tour} onDelete={handleDeleteTour} />
@@ -108,6 +108,7 @@ export default function ToursPage() {
             </div>
           </section>
         )}
+
       </div>
     </div>
   );

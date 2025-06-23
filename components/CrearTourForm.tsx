@@ -22,10 +22,12 @@ import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
+
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 const formSchema = z.object({
   title: z.string().min(1, "El título es requerido"),
@@ -33,31 +35,21 @@ const formSchema = z.object({
   events: z.array(z.number()).min(1, "Selecciona al menos un evento"),
 });
 
-interface Horario {
-  fecha: string;
-  inicio: string;
-  fin: string;
-}
-
 interface Evento {
   id: number;
   nombre: string;
   descripcion: string;
   ubicacion: string;
-  duracion: number;
   precio: number;
   imagen: string;
-  horarios: Horario[];
 }
 
-interface CrearTourFormProps {
-  initialEvents: Evento[];
-}
-
-const CrearTourForm = ({ initialEvents }: CrearTourFormProps) => {
+const CrearTourForm = () => {
   const router = useRouter();
-  const { user } = useAuth();
-  const [selectedEvents, setSelectedEvents] = useState<Evento[]>([]);
+  const { user, token } = useAuth();
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -68,13 +60,51 @@ const CrearTourForm = ({ initialEvents }: CrearTourFormProps) => {
     },
   });
 
+  // Cargar eventos desde el cliente
+  useEffect(() => {
+    const fetchEventos = async () => {
+      try {
+        const response = await fetch(`${API_URL}/events`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error("Respuesta inesperada");
+        }
+
+        const parsed = data.map((evento: any) => ({
+          id: evento.id,
+          nombre: evento.name,
+          descripcion: evento.description,
+          ubicacion: evento.address,
+          precio: evento.price,
+          imagen: evento.image1,
+        }));
+
+        setEventos(parsed);
+      } catch (err) {
+        console.error("Error al cargar eventos:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEventos();
+  }, [token]);
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const response = await fetch("http://localhost:7080/api/tours", {
+      const response = await fetch(`${API_URL}/tours`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          idUser: user?.sub, // o user?.username si el backend usa eso
+          idUser: user?.sub,
           name: values.title,
           description: values.description,
           eventsIds: values.events,
@@ -88,6 +118,22 @@ const CrearTourForm = ({ initialEvents }: CrearTourFormProps) => {
       console.error("Error al crear el tour:", error);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-lg">Cargando eventos disponibles...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-20 text-center text-red-500">
+        <p>Ocurrió un error al cargar los eventos. Intenta más tarde.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-10 mt-16">
@@ -135,50 +181,41 @@ const CrearTourForm = ({ initialEvents }: CrearTourFormProps) => {
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold">Eventos Disponibles</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {initialEvents.map((evento) => (
+                  {eventos.map((evento) => (
                     <FormField
                       key={evento.id}
                       control={form.control}
                       name="events"
-                      render={({ field }) => {
-                        return (
-                          <FormItem
-                            key={evento.id}
-                            className="flex flex-row items-start space-x-3 space-y-0 bg-card p-4 rounded-lg border"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(evento.id)}
-                                onCheckedChange={(checked) => {
-                                  const updatedEvents = checked
-                                    ? [...field.value, evento.id]
-                                    : field.value?.filter((id) => id !== evento.id);
-                                  field.onChange(updatedEvents);
-                                }}
+                      render={({ field }) => (
+                        <FormItem
+                          className="flex flex-row items-start space-x-3 space-y-0 bg-card p-4 rounded-lg border"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(evento.id)}
+                              onCheckedChange={(checked) => {
+                                const updatedEvents = checked
+                                  ? [...field.value, evento.id]
+                                  : field.value?.filter((id) => id !== evento.id);
+                                field.onChange(updatedEvents);
+                              }}
+                            />
+                          </FormControl>
+                          <div className="flex gap-4 flex-grow">
+                            <div className="flex-shrink-0 w-20 h-20 relative">
+                              <img
+                                src={evento.imagen}
+                                alt={evento.nombre}
+                                className="w-full h-full object-cover rounded-md"
                               />
-                            </FormControl>
-                            <div className="flex gap-4 flex-grow">
-                              <div className="flex-shrink-0 w-20 h-20 relative">
-                                <img
-                                  src={evento.imagen}
-                                  alt={evento.nombre}
-                                  className="w-full h-full object-cover rounded-md"
-                                />
-                              </div>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel>{evento.nombre}</FormLabel>
-                                <FormDescription>
-                                  {evento.ubicacion}
-                                  <br />
-                                  Duración: {evento.duracion}h - Precio: ${evento.precio}
-                                  <br />
-                                  Horarios disponibles: {evento.horarios.length} días
-                                </FormDescription>
-                              </div>
                             </div>
-                          </FormItem>
-                        );
-                      }}
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>{evento.nombre}</FormLabel>
+                              <FormDescription>{evento.ubicacion}</FormDescription>
+                            </div>
+                          </div>
+                        </FormItem>
+                      )}
                     />
                   ))}
                 </div>

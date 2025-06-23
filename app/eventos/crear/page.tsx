@@ -28,6 +28,8 @@ export default function CrearEventoPage() {
   const [form, setForm] = useState({
     name: "",
     image1: "",
+    image2: "",
+    image3: "",
     description: "",
     price: "",
     date: "",
@@ -84,18 +86,24 @@ export default function CrearEventoPage() {
       setError("Por favor, completa todos los campos obligatorios.");
       return;
     }
-    if (form.image1 && !isSafeUrl(form.image1)) {
-      setError("La URL de la imagen no es válida o proviene de un sitio no permitido.");
-      return;
+
+    const imageUrls = [form.image1, form.image2, form.image3].filter(Boolean);
+    for (const url of imageUrls) {
+      if (!isSafeUrl(url)) {
+        setError("Una de las URL de imagen no es válida o proviene de un sitio no permitido.");
+        return;
+      }
     }
 
     const payload = {
       name: form.name,
       image1: form.image1,
+      image2: form.image2,
+      image3: form.image3,
       description: form.description,
       price: Number(form.price),
       date: form.date || null,
-      days: [], // mantenido por compatibilidad
+      days: [],
       city: form.city,
       address: form.address,
       availableSpots: form.availableSpots ? Number(form.availableSpots) : null,
@@ -149,8 +157,16 @@ export default function CrearEventoPage() {
               <Input name="name" value={form.name} onChange={handleChange} required maxLength={80} placeholder="Nombre del evento" />
             </div>
             <div>
-              <label className="block font-medium mb-1 text-primary">URL de imagen</label>
+              <label className="block font-medium mb-1 text-primary">URL de imagen 1</label>
               <Input name="image1" value={form.image1} onChange={handleChange} placeholder="https://..." type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL de imagen 2</label>
+              <Input name="image2" value={form.image2} onChange={handleChange} placeholder="https://..." type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL de imagen 3</label>
+              <Input name="image3" value={form.image3} onChange={handleChange} placeholder="https://..." type="url" />
               <span className="text-xs text-muted-foreground">Solo se permiten URLs de sitios seguros.</span>
             </div>
             <div>

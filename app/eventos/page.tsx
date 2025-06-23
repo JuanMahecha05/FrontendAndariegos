@@ -3,20 +3,24 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, MapPin, Star, Users, Calendar } from 'lucide-react';
+import {
+  Card, CardContent, CardDescription,
+  CardFooter, CardHeader, CardTitle
+} from '@/components/ui/card';
+import {
+  Clock, MapPin, Star, Users, Calendar, Loader2
+} from 'lucide-react';
 import { useAuth } from '@/hooks/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose
+  Dialog, DialogContent, DialogDescription,
+  DialogHeader, DialogTitle, DialogFooter, DialogClose
 } from "@/components/ui/dialog";
+import {
+  Carousel, CarouselContent, CarouselItem,
+  CarouselNext, CarouselPrevious
+} from "@/components/ui/carousel";
 
 const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
 function getRandomNeonColor(exclude: string): string {
@@ -24,6 +28,7 @@ function getRandomNeonColor(exclude: string): string {
   return filtered[Math.floor(Math.random() * filtered.length)];
 }
 
+const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: any) => void }) {
@@ -42,21 +47,42 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: an
     setIsHovered(false);
   };
 
+  const images = [evento.image1, evento.image2, evento.image3].filter(Boolean);
+
+  const horarios = evento.eventTimes.map((et: any) => {
+    const { dayOfWeek, startTime, endTime } = et.availabilityPattern;
+    return {
+      day: dayNames[dayOfWeek] || `Día ${dayOfWeek}`,
+      time: `${startTime.slice(0, 5)} - ${endTime.slice(0, 5)}`
+    };
+  });
+
   return (
     <Card
       className={`overflow-hidden transition-all duration-200 border-2 border-gray-300 ${isHovered ? neon : ''}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="relative h-52 w-full">
-        <Image
-          src={evento.image1}
-          alt={evento.name}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover"
-        />
+      <div className="relative w-full h-52">
+        {images.length > 1 ? (
+          <Carousel>
+            <CarouselContent>
+              {images.map((img: string, idx: number) => (
+                <CarouselItem key={idx}>
+                  <div className="relative w-full h-52">
+                    <Image src={img} alt={`Imagen ${idx + 1}`} fill className="object-cover" />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        ) : (
+          <Image src={images[0]} alt={evento.name} fill className="object-cover" />
+        )}
       </div>
+
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-xl">{evento.name}</CardTitle>
@@ -69,20 +95,14 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: an
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {evento.eventTimes.length > 0 && (
-            <div className="flex items-center text-sm text-gray-500">
+          {horarios.map((h:any, i:any) => (
+            <div key={i} className="flex items-center text-sm text-gray-500">
               <Calendar className="h-4 w-4 mr-2" />
-              <span>Día: {evento.eventTimes[0].availabilityPattern.dayOfWeek}</span>
+              <span>{h.day}</span>
+              <Clock className="h-4 w-4 mx-2" />
+              <span>{h.time}</span>
             </div>
-          )}
-          {evento.eventTimes.length > 0 && (
-            <div className="flex items-center text-sm text-gray-500">
-              <Clock className="h-4 w-4 mr-2" />
-              <span>
-                {evento.eventTimes[0].availabilityPattern.startTime.slice(0, 5)} - {evento.eventTimes[0].availabilityPattern.endTime.slice(0, 5)}
-              </span>
-            </div>
-          )}
+          ))}
           <div className="flex items-center text-sm text-gray-500">
             <MapPin className="h-4 w-4 mr-2" />
             <span>{evento.address}</span>
@@ -90,6 +110,9 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: an
           <div className="flex items-center text-sm text-gray-500">
             <Users className="h-4 w-4 mr-2" />
             <span>Máximo {evento.availableSpots || 20} participantes</span>
+          </div>
+          <div className="text-sm font-semibold text-gray-700">
+            Precio: {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(evento.price)}
           </div>
         </div>
       </CardContent>
@@ -120,9 +143,10 @@ export default function EventosPage() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [eventos, setEventos] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // ✅ NUEVO
   const [selectedEvento, setSelectedEvento] = useState<any | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false); // 🔥 Nuevo estado
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   useEffect(() => {
     const fetchEventos = async () => {
@@ -137,6 +161,8 @@ export default function EventosPage() {
           description: "No se pudieron cargar los eventos.",
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false); // ✅ MARCAR COMO CARGADO
       }
     };
     fetchEventos();
@@ -162,7 +188,8 @@ export default function EventosPage() {
     }
 
     const booking_date = new Date().toISOString().split('T')[0];
-    const booking_time = "11:00";
+    const now = new Date();
+    const booking_time = now.toTimeString().split(" ")[0];
 
     try {
       const response = await fetch(`${API_URL}/events/registration`, {
@@ -170,7 +197,7 @@ export default function EventosPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId: selectedEvento.id,
-          userId: user.username || user.email || user.name,
+          userId: user.sub || user.username || user.email,
           booking_time,
           booking_date
         })
@@ -181,7 +208,7 @@ export default function EventosPage() {
       eventosReservados.push(selectedEvento);
       localStorage.setItem('eventosReservados', JSON.stringify(eventosReservados));
 
-      setShowSuccessDialog(true); // ✅ Mostrar diálogo de éxito
+      setShowSuccessDialog(true);
     } catch (error) {
       console.error("Error al agendar evento:", error);
       toast({
@@ -223,11 +250,18 @@ export default function EventosPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {eventos.map((evento) => (
-            <EventoCard key={evento.id} evento={evento} onAgendar={confirmAgendar} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-10">
+            <Loader2 className="h-10 w-10 animate-spin text-gray-600 mb-4" />
+            <p className="text-lg text-gray-600">Cargando eventos...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {eventos.map((evento) => (
+              <EventoCard key={evento.id} evento={evento} onAgendar={confirmAgendar} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Diálogo de confirmación */}

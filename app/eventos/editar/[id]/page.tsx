@@ -55,7 +55,10 @@ export default function EditarEventoPage() {
           price: data.price.toString(),
           availableSpots: data.availableSpots?.toString() || "",
           date: data.date || "",
-          days: Object.entries(groupedDays).map(([day, times]) => ({ day, times }))
+          days: Object.entries(groupedDays).map(([day, times]) => ({ day, times })),
+          image1: data.image1 || "",
+          image2: data.image2 || "",
+          image3: data.image3 || ""
         };
 
         setForm(transformedForm);
@@ -129,8 +132,8 @@ export default function EditarEventoPage() {
       address: form.address,
       price: Number(form.price),
       image1: form.image1,
-      image2: "1",
-      image3: "2",
+      image2: form.image2,
+      image3: form.image3,
       timeSlots: convertToTimeSlots(),
     };
 
@@ -187,8 +190,16 @@ export default function EditarEventoPage() {
               <Input name="name" value={form.name} onChange={handleChange} required maxLength={80} />
             </div>
             <div>
-              <label className="block font-medium mb-1 text-primary">URL de imagen</label>
+              <label className="block font-medium mb-1 text-primary">URL Imagen 1</label>
               <Input name="image1" value={form.image1} onChange={handleChange} type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL Imagen 2</label>
+              <Input name="image2" value={form.image2} onChange={handleChange} type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL Imagen 3</label>
+              <Input name="image3" value={form.image3} onChange={handleChange} type="url" />
             </div>
             <div>
               <label className="block font-medium mb-1 text-primary">Descripción *</label>
