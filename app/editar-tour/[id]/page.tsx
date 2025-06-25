@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import EditarTourForm from '@/components/EditarTourForm';
 import { getTourById, getAvailableEvents } from '@/lib/actions';
 import { redirect } from 'next/navigation';
+import { getCustomServerSession } from '@/lib/server-utils';
 
 /**
  * TODO: Implementar cuando el backend esté disponible
@@ -50,6 +51,17 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 // @ts-ignore Next.js type generation bug: expects Promise in params, but should be plain object
 export default async function EditarTourPage({ params }: { params: { id: string } }) {
   try {
+    // Verificar autenticación y rol ORGANIZER
+    const session = await getCustomServerSession();
+    if (!session) {
+      redirect('/login');
+    }
+
+    // Verificar si el usuario tiene el rol ORGANIZER
+    if (!session.user.roles.includes('ORGANIZER')) {
+      redirect('/');
+    }
+
     // Obtener el tour específico
     const tourResult = await getTourById(params.id);
     

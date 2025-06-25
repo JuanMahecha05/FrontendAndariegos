@@ -6,7 +6,8 @@ import { jwtDecode } from 'jwt-decode'
 const protectedRoutes = [
   '/eventos-admin',
   '/crear-tour',
-  '/eventos-reservados'
+  '/eventos-reservados',
+  '/editar-tour'
 ]
 
 // Rutas que solo pueden acceder usuarios no autenticados
