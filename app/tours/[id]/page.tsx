@@ -42,17 +42,12 @@ export default function TourDetailPage({ params }: Props) {
   const router = useRouter();
   const [tour, setTour] = useState<TourType | null>(null);
   const [loading, setLoading] = useState(true);
-  const { token } = useAuth();
+  const { user, token } = useAuth();
 
   useEffect(() => {
     const fetchTour = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/tours/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/tours/${id}`);
         if (!res.ok) throw new Error("Error al cargar el tour");
 
         const data = await res.json();
@@ -64,10 +59,8 @@ export default function TourDetailPage({ params }: Props) {
       }
     };
 
-    if (token) {
-      fetchTour();
-    }
-  }, [id, token]);
+    fetchTour();
+  }, [id]);
 
   if (loading) {
     return (
@@ -155,27 +148,29 @@ export default function TourDetailPage({ params }: Props) {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="default">Editar Tour</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Editar Tour</DialogTitle>
-              <DialogDescription>¿Deseas editar el tour <strong>{tour.name}</strong>?</DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-end gap-2 pt-4">
-              <DialogClose asChild>
-                <Button variant="outline">Cancelar</Button>
-              </DialogClose>
-              <Button asChild>
-                <Link href={`/editar-tour/${tour.idTour}`}>Editar</Link>
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      {user?.roles.includes('ORGANIZER') && (
+        <div className="flex justify-end">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="default">Editar Tour</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Tour</DialogTitle>
+                <DialogDescription>¿Deseas editar el tour <strong>{tour.name}</strong>?</DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end gap-2 pt-4">
+                <DialogClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <Button asChild>
+                  <Link href={`/editar-tour/${tour.idTour}`}>Editar</Link>
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
     </div>
   );
 }

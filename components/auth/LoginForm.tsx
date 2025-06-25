@@ -18,7 +18,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useToast } from '@/hooks/use-toast'
-import { login } from '@/lib/actions'
 import { useAuth } from '@/hooks/AuthContext'
 
 const loginSchema = z.object({
@@ -39,7 +38,7 @@ export function LoginForm() {
   const { toast } = useToast()
   const router = useRouter()
   const { login: authLogin } = useAuth()
-  
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -48,24 +47,38 @@ export function LoginForm() {
     },
   })
 
-  async function onSubmit(formData: FormData) {
+  async function onSubmit(data: LoginFormValues) {
     setIsLoading(true)
-    
+
     try {
-      const result = await login(formData)
-      
-      if (result.success && result.token) {
-        // Usar el contexto de autenticación para procesar el token
-        authLogin(result.token)
-        
-        toast({
-          title: 'Sesión iniciada',
-          description: 'Has iniciado sesión correctamente.',
-        })
-        
-        // Redirigir al usuario
-        router.push('/')
+      const response = await fetch('http://localhost:7080/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identifier: data.identifier,
+          password: data.password,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Correo o contraseña inválidos.')
       }
+
+      const { access_token, user } = result
+
+      // Actualiza el estado de autenticación global
+      authLogin(access_token)
+
+      toast({
+        title: 'Sesión iniciada',
+        description: 'Has iniciado sesión correctamente.',
+      })
+
+      router.push('/')
     } catch (error: any) {
       toast({
         title: 'Error al iniciar sesión',
@@ -84,7 +97,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form action={onSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="identifier"

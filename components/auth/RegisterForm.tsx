@@ -24,33 +24,20 @@ import { useMutation } from '@apollo/client';
 import { REGISTER_MUTATION } from '@/graphql/mutations/auth'
 
 const registerSchema = z.object({
-  name: z
-    .string()
-    .min(3, { message: 'El nombre debe tener al menos 3 caracteres' })
-    .max(50, { message: 'El nombre no puede tener más de 50 caracteres' }),
-  username: z
-    .string()
-    .min(3, { message: 'El nombre de usuario debe tener al menos 3 caracteres' })
-    .max(50, { message: 'El nombre de usuario no puede tener más de 50 caracteres' }),
-  email: z
-    .string()
-    .min(1, { message: 'El correo electrónico es requerido' })
-    .email({ message: 'Formato de correo electrónico inválido' }),
-  password: z
-    .string()
-    .min(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  name: z.string().min(3).max(50),
+  username: z.string().min(3).max(50),
+  email: z.string().min(1).email(),
+  nationality: z.string().min(2, { message: 'La nacionalidad es requerida' }),
+  password: z.string()
+    .min(8)
     .regex(/[A-Z]/, { message: 'Debe contener al menos una letra mayúscula' })
     .regex(/[a-z]/, { message: 'Debe contener al menos una letra minúscula' })
     .regex(/[0-9]/, { message: 'Debe contener al menos un número' }),
-  confirmPassword: z
-    .string()
-    .min(1, { message: 'La confirmación de contraseña es requerida' }),
-  termsAndConditions: z
-    .boolean()
-    .refine((val) => val === true, {
-      message: 'Debes aceptar los términos y condiciones',
-    }),
-}).refine((data) => data.password === data.confirmPassword, {
+  confirmPassword: z.string().min(1),
+  termsAndConditions: z.boolean().refine(val => val === true, {
+    message: 'Debes aceptar los términos y condiciones',
+  }),
+}).refine(data => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden',
   path: ['confirmPassword'],
 })
@@ -63,7 +50,7 @@ export function RegisterForm() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
-  
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -72,49 +59,56 @@ export function RegisterForm() {
       email: '',
       password: '',
       confirmPassword: '',
+      nationality: '',
       termsAndConditions: false,
     },
     mode: 'onChange',
   })
 
-  const [registerUser] = useMutation(REGISTER_MUTATION)
-
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true)
 
     try {
-      const { data: result } = await registerUser({
-        variables: {
-          createUserInput: {
-            name: data.name,
-            email: data.email,
-            username: data.email, // O usa otro campo si quieres pedirlo
-            password: data.password,
-            roles: ['USER'],
-          },
+      const res = await fetch("http://localhost:7080/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      })
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          username: data.username,
+          password: data.password,
+          nationality: data.nationality,
+          roles: ["USER"],
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error al registrar el usuario");
+      }
 
       toast({
-        title: '¡Registro exitoso!',
-        description: 'Bienvenido a Andariegos. Tu cuenta ha sido creada correctamente.',
-      })
+        title: "¡Registro exitoso!",
+        description: "Bienvenido a Andariegos. Tu cuenta ha sido creada correctamente.",
+      });
 
-      router.push('/login')
+      router.push("/login");
     } catch (error: any) {
       toast({
-        title: 'Error al registrarse',
+        title: "Error al registrarse",
         description: error.message,
-        variant: 'destructive',
-      })
+        variant: "destructive",
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  // Calculate password strength for the indicator
+
   const password = form.watch('password')
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -125,12 +119,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Nombre completo</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Juan Pérez"
-                  autoComplete="name"
-                  disabled={isLoading}
-                  {...field}
-                />
+                <Input placeholder="Juan Pérez" autoComplete="name" disabled={isLoading} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -144,18 +133,13 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Nombre de usuario</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="Juanpe"
-                  autoComplete="username"
-                  disabled={isLoading}
-                  {...field}
-                />
+                <Input placeholder="juanperez123" autoComplete="username" disabled={isLoading} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="email"
@@ -163,19 +147,28 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Correo electrónico</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="tu@correo.com"
-                  type="email"
-                  autoComplete="email"
-                  disabled={isLoading}
-                  {...field}
-                />
+                <Input placeholder="tu@correo.com" type="email" autoComplete="email" disabled={isLoading} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
+        {/* ✅ NUEVO CAMPO: Nacionalidad */}
+        <FormField
+          control={form.control}
+          name="nationality"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nacionalidad</FormLabel>
+              <FormControl>
+                <Input placeholder="German" autoComplete="country-name" disabled={isLoading} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="password"
@@ -184,13 +177,7 @@ export function RegisterForm() {
               <FormLabel>Contraseña</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Input
-                    placeholder="••••••••"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    disabled={isLoading}
-                    {...field}
-                  />
+                  <Input type={showPassword ? 'text' : 'password'} autoComplete="new-password" disabled={isLoading} {...field} />
                   <Button
                     type="button"
                     variant="ghost"
@@ -199,14 +186,8 @@ export function RegisterForm() {
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    )}
-                    <span className="sr-only">
-                      {showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    </span>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <span className="sr-only">{showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}</span>
                   </Button>
                 </div>
               </FormControl>
@@ -218,7 +199,7 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="confirmPassword"
@@ -227,13 +208,7 @@ export function RegisterForm() {
               <FormLabel>Confirmar contraseña</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Input
-                    placeholder="••••••••"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    disabled={isLoading}
-                    {...field}
-                  />
+                  <Input type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" disabled={isLoading} {...field} />
                   <Button
                     type="button"
                     variant="ghost"
@@ -242,14 +217,8 @@ export function RegisterForm() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     disabled={isLoading}
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    ) : (
-                      <Eye className="h-4 w-4" aria-hidden="true" />
-                    )}
-                    <span className="sr-only">
-                      {showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                    </span>
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <span className="sr-only">{showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}</span>
                   </Button>
                 </div>
               </FormControl>
@@ -257,18 +226,14 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="termsAndConditions"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0">
               <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={isLoading}
-                />
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>
@@ -279,12 +244,8 @@ export function RegisterForm() {
             </FormItem>
           )}
         />
-        
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Registrarse
         </Button>

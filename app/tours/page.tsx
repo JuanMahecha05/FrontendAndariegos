@@ -10,7 +10,7 @@ import {
   CardFooter, CardHeader, CardTitle
 } from '@/components/ui/card';
 import {
-  Clock, MapPin, Star, MoreHorizontal
+  Clock, MapPin, Star, MoreHorizontal, Loader2
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription,
@@ -36,11 +36,7 @@ export default function ToursPage() {
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/tours`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/tours`);
         if (!res.ok) throw new Error("No se pudieron cargar los tours");
         const data = await res.json();
         setTours(data);
@@ -51,10 +47,8 @@ export default function ToursPage() {
       }
     };
 
-    if (token) {
-      fetchTours();
-    }
-  }, [token]);
+    fetchTours();
+  }, []);
 
   const handleDeleteTour = async (idTour: number) => {
     try {
@@ -72,16 +66,25 @@ export default function ToursPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-28 text-center">
-        <p className="text-muted-foreground text-lg">Cargando tours...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen pt-20 pb-16">
+      <div className="relative h-[300px] mb-16">
+        <Image
+          src="https://images.pexels.com/photos/13447155/pexels-photo-13447155.jpeg"
+          alt="Tours en Bogotá"
+          fill
+          className="object-cover brightness-50"
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center text-white">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Tours en Bogotá</h1>
+            <p className="text-xl md:text-2xl max-w-2xl mx-auto px-4">
+              Explora la capital colombiana con nuestros tours guiados
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 space-y-16">
         {user?.roles.includes('ORGANIZER') && (
           <div className="mb-10 flex justify-center">
@@ -91,17 +94,21 @@ export default function ToursPage() {
           </div>
         )}
 
-        <section>
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-primary dark:text-white">Tours</h2>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-10">
+            <Loader2 className="h-10 w-10 animate-spin text-gray-600 mb-4" />
+            <p className="text-lg text-gray-600">Cargando tours...</p>
           </div>
+        ) : (
+          <section>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {tours.map(tour => (
+                <TourCard key={tour.idTour} tour={tour} onDelete={handleDeleteTour} />
+              ))}
+            </div>
+          </section>
+        )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {tours.map(tour => (
-              <TourCard key={tour.idTour} tour={tour} onDelete={handleDeleteTour} />
-            ))}
-          </div>
-        </section>
       </div>
     </div>
   );
@@ -171,7 +178,7 @@ function TourCard({ tour, onDelete }: { tour: any; onDelete: (id: number) => voi
         </div>
         <div className="flex gap-2">
           <Link href={`/tours/${tour.idTour}`}>
-            <Button variant="outline">Ver detalles</Button>
+            <Button className="bg-blue-500 text-white hover:bg-blue-600">Ver detalles</Button>
           </Link>
           {user?.roles.includes('ORGANIZER') && (
             <DropdownMenu>

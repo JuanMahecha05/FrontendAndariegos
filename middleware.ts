@@ -14,8 +14,11 @@ const protectedRoutes = [
 const authRoutes = ['/login', '/register']
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('access_token')?.value
+  const token = request.cookies.get('client_token')?.value
   const { pathname } = request.nextUrl
+  console.log('Token:', token)
+  console.log('Path:', pathname)
+
 
   // Verificar si la ruta actual requiere autenticación
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))

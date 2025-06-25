@@ -5,6 +5,7 @@ import { jwtDecode } from 'jwt-decode';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { decryptToken, isValidJWT } from '@/lib/utils';
+import { logoutServer } from '@/lib/actions'
 
 export type Role = 'USER' | 'ORGANIZER' | 'ADMIN';
 
@@ -14,6 +15,7 @@ type User = {
   email: string;
   roles: Role[];
   id?: string;
+  sub: string;
 };
 
 type AuthContextType = {
@@ -85,17 +87,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    Cookies.remove('client_token');
+  const logout = async () => {
+    try {
+      await logoutServer(); // borra cookies desde el servidor
+    } catch (e) {
+      console.warn("Error al cerrar sesión en el servidor", e);
+    }
+
+    Cookies.remove("client_token", { path: "/" });
+
     setUser(null);
     setToken(null);
     setIsInitialized(true);
     setIsLoading(false);
-    
-    // Forzar re-render del navbar
-    window.dispatchEvent(new CustomEvent('auth-state-changed'));
-    router.push('/');
+
+    // Forzar evento global
+    window.dispatchEvent(new CustomEvent("auth-state-changed"));
+
+    // Recargar toda la app desde 0
+    window.location.href = "/";
   };
+
 
   useEffect(() => {
     const initializeAuth = async () => {

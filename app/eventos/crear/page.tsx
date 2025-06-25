@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+
 const MALICIOUS_DOMAINS = ["porn", "sex", "xxx", "redtube", "xvideos", "xnxx", "hentai", "youporn", "brazzers", "camgirl", "cam4", "chaturbate", "xhamster", "spankbang", "tnaflix", "fapdu", "erotic", "escort", "bet365", "casino", "phishing", "malware", "virus"];
 
 function isSafeUrl(url: string) {
@@ -27,10 +28,12 @@ export default function CrearEventoPage() {
   const [form, setForm] = useState({
     name: "",
     image1: "",
+    image2: "",
+    image3: "",
     description: "",
     price: "",
     date: "",
-    days: [] as { day: string; times: string[] }[],
+    days: [] as { day: string; startTime: string; endTime: string }[],
     city: "",
     address: "",
     availableSpots: "",
@@ -46,41 +49,33 @@ export default function CrearEventoPage() {
   const toggleDay = (day: string) => {
     setForm(prev => {
       const exists = prev.days.find(d => d.day === day);
-      const updatedDays = exists ? prev.days.filter(d => d.day !== day) : [...prev.days, { day, times: [] }];
-      return { ...prev, days: updatedDays };
+      const updated = exists
+        ? prev.days.filter(d => d.day !== day)
+        : [...prev.days, { day, startTime: "", endTime: "" }];
+      return { ...prev, days: updated };
     });
   };
 
-  const toggleHourRange = (day: string, time: string) => {
+  const updateDayTime = (day: string, field: "startTime" | "endTime", value: string) => {
     setForm(prev => ({
       ...prev,
-      days: prev.days.map(d =>
-        d.day === day
-          ? {
-              ...d,
-              times: d.times.includes(time) ? d.times.filter(t => t !== time) : [...d.times, time],
-            }
-          : d
-      ),
+      days: prev.days.map(d => d.day === day ? { ...d, [field]: value } : d)
     }));
   };
 
   const convertToTimeSlots = () => {
     const dayMap: Record<string, number> = {
-      "Lunes": 1, "Martes": 2, "Miércoles": 3, "Jueves": 4, "Viernes": 5, "Sábado": 6, "Domingo": 7
+      Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4, Viernes: 5,
+      Sábado: 6, Domingo: 7
     };
-
-    const timeSlots: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
-
+    const slots: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
     form.days.forEach(d => {
       const dayNum = dayMap[d.day];
-      d.times.forEach(range => {
-        const [startTime, endTime] = range.split("-");
-        timeSlots.push({ dayOfWeek: dayNum, startTime, endTime });
-      });
+      if (d.startTime && d.endTime) {
+        slots.push({ dayOfWeek: dayNum, startTime: d.startTime, endTime: d.endTime });
+      }
     });
-
-    return timeSlots;
+    return slots;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,18 +86,24 @@ export default function CrearEventoPage() {
       setError("Por favor, completa todos los campos obligatorios.");
       return;
     }
-    if (form.image1 && !isSafeUrl(form.image1)) {
-      setError("La URL de la imagen no es válida o proviene de un sitio no permitido.");
-      return;
+
+    const imageUrls = [form.image1, form.image2, form.image3].filter(Boolean);
+    for (const url of imageUrls) {
+      if (!isSafeUrl(url)) {
+        setError("Una de las URL de imagen no es válida o proviene de un sitio no permitido.");
+        return;
+      }
     }
 
     const payload = {
       name: form.name,
       image1: form.image1,
+      image2: form.image2,
+      image3: form.image3,
       description: form.description,
       price: Number(form.price),
       date: form.date || null,
-      days: [], // no se usa pero mantenido por compatibilidad
+      days: [],
       city: form.city,
       address: form.address,
       availableSpots: form.availableSpots ? Number(form.availableSpots) : null,
@@ -114,13 +115,15 @@ export default function CrearEventoPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        throw new Error("Error al crear el evento");
+        const errorText = await response.text();
+        console.error("Detalles del error:", errorText);
+        throw new Error(errorText || "Error al crear el evento");
       }
 
       toast({
@@ -129,18 +132,17 @@ export default function CrearEventoPage() {
       });
 
       setTimeout(() => router.push("/eventos"), 1500);
-    } catch (error) {
+    } catch (err: any) {
       toast({
         title: "Error",
-        description: "Hubo un problema al guardar el evento.",
+        description: err.message || "Hubo un problema al guardar el evento.",
         variant: "destructive",
       });
-      console.error("Error:", error);
+      console.error("Error:", err);
     }
   };
 
   const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-  const hourRanges = ["6:00-9:00", "12:00-14:00", "14:00-17:00", "17:00-20:00"];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background pt-32 pb-16">
@@ -155,8 +157,16 @@ export default function CrearEventoPage() {
               <Input name="name" value={form.name} onChange={handleChange} required maxLength={80} placeholder="Nombre del evento" />
             </div>
             <div>
-              <label className="block font-medium mb-1 text-primary">URL de imagen</label>
+              <label className="block font-medium mb-1 text-primary">URL de imagen 1</label>
               <Input name="image1" value={form.image1} onChange={handleChange} placeholder="https://..." type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL de imagen 2</label>
+              <Input name="image2" value={form.image2} onChange={handleChange} placeholder="https://..." type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL de imagen 3</label>
+              <Input name="image3" value={form.image3} onChange={handleChange} placeholder="https://..." type="url" />
               <span className="text-xs text-muted-foreground">Solo se permiten URLs de sitios seguros.</span>
             </div>
             <div>
@@ -191,7 +201,7 @@ export default function CrearEventoPage() {
                 {weekDays.map((day) => {
                   const selectedDay = form.days.find(d => d.day === day);
                   return (
-                    <div key={day} className="flex flex-col mb-2">
+                    <div key={day} className="flex flex-col mb-4">
                       <label className="flex items-center gap-2 text-sm font-medium">
                         <input
                           type="checkbox"
@@ -201,17 +211,25 @@ export default function CrearEventoPage() {
                         {day}
                       </label>
                       {selectedDay && (
-                        <div className="ml-6 mt-1 flex flex-wrap gap-2 text-xs">
-                          {hourRanges.map((range) => (
-                            <label key={range} className="flex items-center gap-1">
-                              <input
-                                type="checkbox"
-                                checked={selectedDay.times.includes(range)}
-                                onChange={() => toggleHourRange(day, range)}
-                              />
-                              {range}
-                            </label>
-                          ))}
+                        <div className="ml-6 mt-2 flex gap-4">
+                          <label className="flex flex-col text-sm">
+                            Hora inicio:
+                            <input
+                              type="time"
+                              value={selectedDay.startTime}
+                              onChange={(e) => updateDayTime(day, "startTime", e.target.value)}
+                              required
+                            />
+                          </label>
+                          <label className="flex flex-col text-sm">
+                            Hora fin:
+                            <input
+                              type="time"
+                              value={selectedDay.endTime}
+                              onChange={(e) => updateDayTime(day, "endTime", e.target.value)}
+                              required
+                            />
+                          </label>
                         </div>
                       )}
                     </div>
