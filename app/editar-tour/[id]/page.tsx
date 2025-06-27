@@ -1,8 +1,5 @@
 import { Metadata } from 'next';
 import EditarTourForm from '@/components/EditarTourForm';
-import { getTourById, getAvailableEvents } from '@/lib/actions';
-import { redirect } from 'next/navigation';
-import { getCustomServerSession } from '@/lib/server-utils';
 
 /**
  * TODO: Implementar cuando el backend esté disponible
@@ -49,70 +46,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 // @ts-ignore Next.js type generation bug: expects Promise in params, but should be plain object
-export default async function EditarTourPage({ params }: { params: { id: string } }) {
-  try {
-    // Verificar autenticación y rol ORGANIZER
-    const session = await getCustomServerSession();
-    if (!session) {
-      redirect('/login');
-    }
-
-    // Verificar si el usuario tiene el rol ORGANIZER
-    if (!session.user.roles.includes('ORGANIZER')) {
-      redirect('/');
-    }
-
-    // Obtener el tour específico
-    const tourResult = await getTourById(params.id);
-    
-    if (!tourResult.success) {
-      return (
-        <div className="container mx-auto px-4 py-8 mt-16">
-          <h1 className="text-3xl font-bold mb-6">Error al cargar el tour</h1>
-          <p className="text-destructive">{tourResult.message}</p>
-        </div>
-      );
-    }
-
-    // Obtener todos los eventos disponibles
-    const eventsResult = await getAvailableEvents();
-    
-    if (!eventsResult.success) {
-      return (
-        <div className="container mx-auto px-4 py-8 mt-16">
-          <h1 className="text-3xl font-bold mb-6">Error al cargar los eventos</h1>
-          <p className="text-destructive">{eventsResult.message}</p>
-        </div>
-      );
-    }
-
-    const tour = tourResult.tour;
-    const availableEvents = eventsResult.events;
-
-    if (!tour) {
-      return (
-        <div className="container mx-auto px-4 py-8 mt-16">
-          <h1 className="text-3xl font-bold mb-6">Tour no encontrado</h1>
-          <p>El tour que buscas no existe o no tienes permisos para verlo.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="container mx-auto px-4 py-8 mt-16">
-        <EditarTourForm 
-          tour={tour} 
-          availableEvents={availableEvents} 
-        />
-      </div>
-    );
-  } catch (error) {
-    console.error('Error loading edit tour page:', error);
-    return (
-      <div className="container mx-auto px-4 py-8 mt-16">
-        <h1 className="text-3xl font-bold mb-6">Error inesperado</h1>
-        <p>Ocurrió un error al cargar la página. Por favor, intenta de nuevo.</p>
-      </div>
-    );
-  }
+export default function EditarTourPage({ params }: { params: { id: string } }) {
+  return (
+    <div className="container mx-auto px-4 py-8 mt-16">
+      <EditarTourForm tourId={params.id} />
+    </div>
+  );
 } 
