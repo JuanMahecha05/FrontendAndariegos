@@ -221,8 +221,8 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         // Enriquecer los eventos seleccionados del tour
         const selectedIds = (tourData.events || tourData.eventIds || []).map((event: any) => event.id || event);
         const enrichedSelectedEvents = selectedIds
-          .map((id: any) => transformedEvents.find(e => e.id === id))
-          .filter((event: any) => Boolean(event));
+          .map((id) => transformedEvents.find(e => String(e.id) === String(id)))
+          .filter(Boolean);
 
         // Actualizar el estado del tour y del formulario
         const transformedTour = {
@@ -239,7 +239,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         form.reset({
           title: transformedTour.title,
           description: transformedTour.description,
-          events: enrichedSelectedEvents.map((e: any) => e.id),
+          events: enrichedSelectedEvents.map((e) => String(e.id)),
         });
 
       } catch (err) {
@@ -342,9 +342,10 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          idUser: user?.sub,
           name: values.title,
           description: values.description,
-          eventsIds: validEvents.filter((evento: any) => evento !== undefined).map((evento: any) => evento.id)
+          eventsIds: validEvents.filter((evento) => evento !== undefined).map((evento) => evento.id)
         })
       });
 
@@ -498,7 +499,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
                             >
                               <FormControl>
                                 <Checkbox
-                                  checked={field.value?.includes(evento.id)}
+                                  checked={field.value?.map(String).includes(String(evento.id))}
                                   onCheckedChange={(checked) => {
                                     let updatedEvents;
                                     if (checked) {
