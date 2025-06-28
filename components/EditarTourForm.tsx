@@ -167,14 +167,12 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
     })
   );
 
-  // Cargar tour y eventos desde el cliente
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // Verificar autenticación
         if (!token) {
           router.push('/login');
           return;
@@ -193,18 +191,6 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         }
 
         const tourData = await tourResponse.json();
-        console.log('Tour data received:', tourData);
-
-        // Transformar los datos del tour al formato esperado
-        const transformedTour: Tour = {
-          id: tourData.idTour?.toString() || tourId,
-          title: tourData.name || tourData.title || '',
-          description: tourData.description || '',
-          events: tourData.events || tourData.eventIds || []
-        };
-
-        setTour(transformedTour);
-        setSelectedEvents(transformedTour.events);
 
         // Obtener todos los eventos disponibles
         const eventsResponse = await fetch(`${API_URL}/events`, {
@@ -219,10 +205,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         }
 
         const eventsData = await eventsResponse.json();
-        console.log('Events data received:', eventsData);
-
-        // Transformar los eventos al formato esperado
-        const transformedEvents: Evento[] = Array.isArray(eventsData) ? eventsData.map((evento: any) => ({
+        const transformedEvents = Array.isArray(eventsData) ? eventsData.map((evento) => ({
           id: evento.id,
           nombre: evento.name,
           descripcion: evento.description,
@@ -235,8 +218,31 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
 
         setAvailableEvents(transformedEvents);
 
+        // Enriquecer los eventos seleccionados del tour
+        const selectedIds = (tourData.events || tourData.eventIds || []).map((event) => event.id || event);
+        const enrichedSelectedEvents = selectedIds
+          .map((id) => transformedEvents.find(e => e.id === id))
+          .filter(Boolean);
+
+        // Actualizar el estado del tour y del formulario
+        const transformedTour = {
+          id: tourData.idTour?.toString() || tourId,
+          title: tourData.name || tourData.title || '',
+          description: tourData.description || '',
+          events: enrichedSelectedEvents
+        };
+
+        setTour(transformedTour);
+        setSelectedEvents(enrichedSelectedEvents);
+
+        // Resetear el formulario con los datos correctos
+        form.reset({
+          title: transformedTour.title,
+          description: transformedTour.description,
+          events: enrichedSelectedEvents.map(e => e.id),
+        });
+
       } catch (err) {
-        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Error desconocido');
       } finally {
         setLoading(false);
@@ -244,6 +250,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourId, token, router]);
 
   const form = useForm<FormValues>({
@@ -254,18 +261,6 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
       events: tour?.events.map(event => event.id) || [],
     },
   });
-
-  // Actualizar valores del formulario cuando se carga el tour
-  useEffect(() => {
-    if (tour) {
-      form.reset({
-        title: tour.title,
-        description: tour.description,
-        events: tour.events.map(event => event.id),
-      });
-      setSelectedEvents(tour.events);
-    }
-  }, [tour, form]);
 
   useEffect(() => {
     const newTotalPrice = selectedEvents.reduce((sum, evento) => sum + evento.precio, 0);
@@ -318,17 +313,18 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
 
   const onSubmit = async (values: FormValues) => {
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      console.log('Submitting form with values:', values);
-      
+      console.log('Form values:', values);
+      console.log('Available events:', availableEvents);
+
       // Validar que los eventos seleccionados existen
-      const validEvents = selectedEvents.filter(evento => 
-        availableEvents.some(available => available.id === evento.id)
-      );
-      
+      const validEvents = values.events
+        .map((id) => availableEvents.find((e) => e.id === id))
+        .filter(Boolean);
+
       if (validEvents.length === 0) {
         toast({
           title: "Error",
@@ -337,7 +333,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         });
         return;
       }
-      
+
       // Actualizar el tour usando la API
       const response = await fetch(`${API_URL}/tours/${tourId}`, {
         method: "PUT",
@@ -361,7 +357,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         title: "¡Éxito!",
         description: "Tour actualizado correctamente",
       });
-      
+
       // Redirigir después de un breve delay para que el usuario vea la notificación
       setTimeout(() => {
         router.push('/tours');
@@ -504,10 +500,13 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
                                 <Checkbox
                                   checked={field.value?.includes(evento.id)}
                                   onCheckedChange={(checked) => {
-                                    const updatedEvents = checked
-                                      ? [...field.value, evento.id]
-                                      : field.value?.filter((id) => id !== evento.id);
-                                    field.onChange(updatedEvents);
+                                    let updatedEvents;
+                                    if (checked) {
+                                      updatedEvents = [...form.getValues("events"), evento.id];
+                                    } else {
+                                      updatedEvents = form.getValues("events").filter((id) => id !== evento.id);
+                                    }
+                                    form.setValue("events", updatedEvents, { shouldValidate: true });
                                     setSelectedEvents(updatedEvents.map(id => availableEvents.find(e => e.id === id)).filter(Boolean) as Evento[]);
                                   }}
                                 />
