@@ -31,10 +31,10 @@ function getRandomNeonColor(exclude: string): string {
 const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
-function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: any) => void }) {
+function EventoCard({ evento, onAgendar, onReport, isAuthenticated }: { evento: any; onAgendar: (evento: any) => void; onReport: (evento: any) => void; isAuthenticated: boolean }) {
   const [neon, setNeon] = React.useState('neon-yellow');
   const [isHovered, setIsHovered] = React.useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated: authUser } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -64,6 +64,19 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: an
       onMouseLeave={handleMouseLeave}
     >
       <div className="relative w-full h-52">
+        {/* Botón de reporte */}
+        {isAuthenticated && (
+          <button
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-600 z-10"
+            title="Reportar evento"
+            onClick={e => {
+              e.stopPropagation();
+              onReport(evento);
+            }}
+          >
+            !
+          </button>
+        )}
         {images.length > 1 ? (
           <Carousel>
             <CarouselContent>
@@ -120,7 +133,7 @@ function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: an
         <Button
           className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
           onClick={() => {
-            if (!isAuthenticated || !user) {
+            if (!authUser || !user) {
               toast({
                 title: "Inicia sesión",
                 description: "Debes iniciar sesión para agendar eventos",
@@ -147,6 +160,8 @@ export default function EventosPage() {
   const [selectedEvento, setSelectedEvento] = useState<any | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportDescription, setReportDescription] = useState("");
 
   useEffect(() => {
     const fetchEventos = async () => {
@@ -221,6 +236,33 @@ export default function EventosPage() {
     }
   };
 
+  const openReportDialog = (evento: any) => {
+    setSelectedEvento(evento);
+    setReportDescription("");
+    setShowReportDialog(true);
+  };
+
+  const handleReportSubmit = async () => {
+    if (!selectedEvento || !user) return;
+    try {
+      const response = await fetch(`${API_URL}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_event: selectedEvento.id,
+          id_reporter: user.sub || user.username || user.email,
+          description: reportDescription,
+          state: "pending"
+        })
+      });
+      if (!response.ok) throw new Error("Error al crear el reporte");
+      toast({ title: "Reporte enviado", description: "Gracias por tu reporte.", variant: "default" });
+      setShowReportDialog(false);
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudo enviar el reporte.", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20 pb-16">
       <div className="relative h-[300px] mb-16">
@@ -258,7 +300,13 @@ export default function EventosPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {eventos.map((evento) => (
-              <EventoCard key={evento.id} evento={evento} onAgendar={confirmAgendar} />
+              <EventoCard
+                key={evento.id}
+                evento={evento}
+                onAgendar={confirmAgendar}
+                onReport={openReportDialog}
+                isAuthenticated={isAuthenticated}
+              />
             ))}
           </div>
         )}
@@ -296,6 +344,37 @@ export default function EventosPage() {
           <DialogFooter className="flex justify-end">
             <Button onClick={() => setShowSuccessDialog(false)} className="bg-primary text-white">
               Aceptar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de reporte */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reportar evento</DialogTitle>
+            <DialogDescription>
+              Describe el motivo del reporte para el evento <strong>{selectedEvento?.name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <textarea
+            className="w-full border rounded p-2 mt-2"
+            rows={4}
+            value={reportDescription}
+            onChange={e => setReportDescription(e.target.value)}
+            placeholder="Describe el problema..."
+          />
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button
+              onClick={handleReportSubmit}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              disabled={!reportDescription.trim()}
+            >
+              Enviar reporte
             </Button>
           </DialogFooter>
         </DialogContent>

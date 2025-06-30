@@ -221,7 +221,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         // Enriquecer los eventos seleccionados del tour
         const selectedIds = (tourData.events || tourData.eventIds || []).map((event: any) => event.id || event);
         const enrichedSelectedEvents = selectedIds
-          .map((id) => transformedEvents.find(e => String(e.id) === String(id)))
+          .map((id: string | number) => transformedEvents.find((e: any) => String(e.id) === String(id)))
           .filter(Boolean);
 
         // Actualizar el estado del tour y del formulario
@@ -239,7 +239,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         form.reset({
           title: transformedTour.title,
           description: transformedTour.description,
-          events: enrichedSelectedEvents.map((e) => String(e.id)),
+          events: enrichedSelectedEvents.map((e: any) => String(e.id)),
         });
 
       } catch (err) {
@@ -345,7 +345,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
           idUser: user?.sub,
           name: values.title,
           description: values.description,
-          eventsIds: validEvents.filter((evento) => evento !== undefined).map((evento) => evento.id)
+          eventsIds: validEvents.filter((evento) => evento !== undefined).map((evento) => evento?.id).filter((id) => id !== undefined)
         })
       });
 
