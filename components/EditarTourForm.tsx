@@ -28,7 +28,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { updateTour } from "@/lib/actions";
+import { useAuth } from "@/hooks/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 interface Horario {
   fecha: string;
@@ -137,21 +140,25 @@ const SortableEvent = ({ id, evento, onRemove, onMoveUp, onMoveDown, isFirst, is
 };
 
 interface EditarTourFormProps {
-  tour: Tour;
-  availableEvents: Evento[];
+  tourId: string;
 }
 
-export default function EditarTourForm({ tour, availableEvents }: EditarTourFormProps) {
+export default function EditarTourForm({ tourId }: EditarTourFormProps) {
   const router = useRouter();
-  const [selectedEvents, setSelectedEvents] = useState<Evento[]>(tour.events);
+  const { toast } = useToast();
+  const { user, token } = useAuth();
+  const [tour, setTour] = useState<Tour | null>(null);
+  const [availableEvents, setAvailableEvents] = useState<Evento[]>([]);
+  const [selectedEvents, setSelectedEvents] = useState<Evento[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchDate, setSearchDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const eventsPerPage = 9;
-
-  console.log('EditarTourForm props:', { tour, availableEvents });
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -160,12 +167,98 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
     })
   );
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        if (!token) {
+          router.push('/login');
+          return;
+        }
+
+        // Obtener el tour específico
+        const tourResponse = await fetch(`${API_URL}/tours/${tourId}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!tourResponse.ok) {
+          throw new Error(`Error al cargar el tour: ${tourResponse.status}`);
+        }
+
+        const tourData = await tourResponse.json();
+
+        // Obtener todos los eventos disponibles
+        const eventsResponse = await fetch(`${API_URL}/events`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!eventsResponse.ok) {
+          throw new Error(`Error al cargar eventos: ${eventsResponse.status}`);
+        }
+
+        const eventsData = await eventsResponse.json();
+        const transformedEvents = Array.isArray(eventsData) ? eventsData.map((evento) => ({
+          id: evento.id,
+          nombre: evento.name,
+          descripcion: evento.description,
+          ubicacion: evento.address,
+          duracion: evento.duration || 1,
+          precio: evento.price,
+          imagen: evento.image1,
+          horarios: evento.timeSlots || []
+        })) : [];
+
+        setAvailableEvents(transformedEvents);
+
+        // Enriquecer los eventos seleccionados del tour
+        const selectedIds = (tourData.events || tourData.eventIds || []).map((event: any) => event.id || event);
+        const enrichedSelectedEvents = selectedIds
+          .map((id: string | number) => transformedEvents.find((e: any) => String(e.id) === String(id)))
+          .filter(Boolean);
+
+        // Actualizar el estado del tour y del formulario
+        const transformedTour = {
+          id: tourData.idTour?.toString() || tourId,
+          title: tourData.name || tourData.title || '',
+          description: tourData.description || '',
+          events: enrichedSelectedEvents
+        };
+
+        setTour(transformedTour);
+        setSelectedEvents(enrichedSelectedEvents);
+
+        // Resetear el formulario con los datos correctos
+        form.reset({
+          title: transformedTour.title,
+          description: transformedTour.description,
+          events: enrichedSelectedEvents.map((e: any) => String(e.id)),
+        });
+
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourId, token, router]);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: tour.title,
-      description: tour.description,
-      events: tour.events.map(event => event.id),
+      title: tour?.title || '',
+      description: tour?.description || '',
+      events: tour?.events.map(event => event.id) || [],
     },
   });
 
@@ -219,31 +312,104 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
   const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
 
   const onSubmit = async (values: FormValues) => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
     try {
-      console.log('Submitting form with values:', values);
-      const result = await updateTour(tour.id, {
-        title: values.title,
-        description: values.description,
-        events: selectedEvents.map(evento => ({
-          id: Number(evento.id),
-          nombre: evento.nombre,
-          descripcion: evento.descripcion,
-          ubicacion: evento.ubicacion,
-          duracion: evento.duracion,
-          precio: evento.precio,
-          imagen: evento.imagen
-        }))
+      console.log('Form values:', values);
+      console.log('Available events:', availableEvents);
+
+      // Validar que los eventos seleccionados existen
+      const validEvents = values.events
+        .map((id) => availableEvents.find((e) => e.id === id))
+        .filter(Boolean);
+
+      if (validEvents.length === 0) {
+        toast({
+          title: "Error",
+          description: "Debes seleccionar al menos un evento válido",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Actualizar el tour usando la API
+      const response = await fetch(`${API_URL}/tours/${tourId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          idUser: user?.sub,
+          name: values.title,
+          description: values.description,
+          eventsIds: validEvents.filter((evento) => evento !== undefined).map((evento) => evento?.id).filter((id) => id !== undefined)
+        })
       });
 
-      if (result.success) {
-        router.push('/tours');
-      } else {
-        console.error('Error updating tour:', result.message);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Error al actualizar el tour");
       }
+
+      toast({
+        title: "¡Éxito!",
+        description: "Tour actualizado correctamente",
+      });
+
+      // Redirigir después de un breve delay para que el usuario vea la notificación
+      setTimeout(() => {
+        router.push('/tours');
+      }, 1500);
     } catch (error) {
       console.error('Error submitting form:', error);
+      toast({
+        title: "Error inesperado",
+        description: error instanceof Error ? error.message : "Ocurrió un error al actualizar el tour. Por favor, intenta de nuevo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-lg">Cargando tour y eventos disponibles...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-20 text-center text-red-500">
+        <p>Error: {error}</p>
+        <Button 
+          onClick={() => router.back()} 
+          className="mt-4"
+        >
+          Volver
+        </Button>
+      </div>
+    );
+  }
+
+  if (!tour) {
+    return (
+      <div className="py-20 text-center">
+        <p>Tour no encontrado</p>
+        <Button 
+          onClick={() => router.back()} 
+          className="mt-4"
+        >
+          Volver
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-10 mt-16">
@@ -333,12 +499,15 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
                             >
                               <FormControl>
                                 <Checkbox
-                                  checked={field.value?.includes(evento.id)}
+                                  checked={field.value?.map(String).includes(String(evento.id))}
                                   onCheckedChange={(checked) => {
-                                    const updatedEvents = checked
-                                      ? [...field.value, evento.id]
-                                      : field.value?.filter((id) => id !== evento.id);
-                                    field.onChange(updatedEvents);
+                                    let updatedEvents;
+                                    if (checked) {
+                                      updatedEvents = [...form.getValues("events"), evento.id];
+                                    } else {
+                                      updatedEvents = form.getValues("events").filter((id) => id !== evento.id);
+                                    }
+                                    form.setValue("events", updatedEvents, { shouldValidate: true });
                                     setSelectedEvents(updatedEvents.map(id => availableEvents.find(e => e.id === id)).filter(Boolean) as Evento[]);
                                   }}
                                 />
@@ -356,9 +525,7 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
                                   <FormDescription>
                                     {evento.ubicacion}
                                     <br />
-                                    Duración: {evento.duracion}h - Precio: ${evento.precio}
-                                    <br />
-                                    Horarios disponibles: {evento.horarios.length} días
+                                    Duración: {evento.duracion}h | Precio: ${evento.precio}
                                   </FormDescription>
                                 </div>
                               </div>
@@ -370,22 +537,24 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
                   </div>
 
                   {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-4 mt-4">
+                    <div className="flex justify-center gap-2">
                       <Button
+                        type="button"
                         variant="outline"
-                        size="icon"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                         disabled={currentPage === 1}
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
-                      <span className="text-sm">
+                      <span className="flex items-center px-3">
                         Página {currentPage} de {totalPages}
                       </span>
                       <Button
+                        type="button"
                         variant="outline"
-                        size="icon"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                         disabled={currentPage === totalPages}
                       >
                         <ChevronRight className="h-4 w-4" />
@@ -393,58 +562,60 @@ export default function EditarTourForm({ tour, availableEvents }: EditarTourForm
                     </div>
                   )}
                 </div>
+
+                {selectedEvents.length > 0 && (
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Eventos Seleccionados ({selectedEvents.length})</h4>
+                    <div className="text-sm text-muted-foreground">
+                      Total: ${totalPrice} | Duración: {totalDuration}h
+                    </div>
+                    
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext
+                        items={selectedEvents.map(e => e.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {selectedEvents.map((evento, index) => (
+                          <SortableEvent
+                            key={evento.id}
+                            id={evento.id}
+                            evento={evento}
+                            onRemove={() => {
+                              const newEvents = selectedEvents.filter(e => e.id !== evento.id);
+                              setSelectedEvents(newEvents);
+                              form.setValue('events', newEvents.map(e => e.id));
+                            }}
+                            onMoveUp={() => moveEvent(index, 'up')}
+                            onMoveDown={() => moveEvent(index, 'down')}
+                            isFirst={index === 0}
+                            isLast={index === selectedEvents.length - 1}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                )}
               </div>
 
-              {selectedEvents.length > 0 && (
-                <div className="space-y-6">
-                  <h3 className="text-xl font-semibold text-primary">Secuencia del Tour</h3>
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext
-                      items={selectedEvents.map(e => e.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {selectedEvents.map((evento, index) => (
-                        <SortableEvent
-                          key={evento.id}
-                          id={evento.id}
-                          evento={evento}
-                          onRemove={() => {
-                            const newEvents = selectedEvents.filter(e => e.id !== evento.id);
-                            setSelectedEvents(newEvents);
-                            form.setValue('events', newEvents.map(e => e.id));
-                          }}
-                          onMoveUp={() => moveEvent(index, 'up')}
-                          onMoveDown={() => moveEvent(index, 'down')}
-                          isFirst={index === 0}
-                          isLast={index === selectedEvents.length - 1}
-                        />
-                      ))}
-                    </SortableContext>
-                  </DndContext>
-                </div>
-              )}
-
-              {selectedEvents.length > 0 && (
-                <div className="space-y-4 border-t pt-6">
-                  <h3 className="text-xl font-semibold text-primary">Resumen del Tour</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <p>Duración total: {totalDuration} horas</p>
-                      <p>Precio total: ${totalPrice}</p>
-                    </div>
-                    <div className="space-y-2">
-                      <p>Ubicación inicial: {selectedEvents[0]?.ubicacion}</p>
-                      <p>Ubicación final: {selectedEvents[selectedEvents.length - 1]?.ubicacion}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <Button type="submit" className="w-full">Guardar Cambios</Button>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Actualizando..." : "Actualizar Tour"}
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>

@@ -5,6 +5,7 @@ import { getAuthHeaders } from "./server-utils";
 import { jwtDecode } from "jwt-decode";
 import { redirect } from "next/navigation";
 import { decryptToken, isValidJWT } from "./utils";
+import { getCustomServerSession } from "./server-utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
@@ -127,9 +128,11 @@ export async function register(createUserInput: {
   }
 }
 
-export async function logout() {
+// lib/actions.ts
+export async function logoutServer() {
   const cookieStore = cookies();
   cookieStore.delete("access_token");
+  cookieStore.delete("client_token");
 }
 
 /**
@@ -304,6 +307,120 @@ export async function updateTour(
     return {
       success: false,
       message: "Error al actualizar el tour",
+    };
+  }
+}
+
+/**Add commentMore actions
+ * Obtiene un tour específico por ID
+ *
+ * @param tourId - ID del tour a obtener
+ * @returns Objeto con el resultado de la operación
+ *   - success: boolean - Indica si la operación fue exitosa
+ *   - message: string - Mensaje descriptivo del resultado
+ *   - tour: object (opcional) - Datos del tour
+ */
+export async function getTourById(tourId: string) {
+  "use server";
+
+  try {
+    const session = await getCustomServerSession();
+    if (!session) {
+      return {
+        success: false,
+        message: "No tienes permisos para ver tours",
+      };
+    }
+
+    console.log(`Fetching tour with ID: ${tourId}`);
+
+    const response = await fetch(`${API_URL}/api/tours/${tourId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`Error fetching tour ${tourId}:`, errorData);
+      throw new Error(
+        errorData.message || `Error ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    console.log(`Tour data received:`, data);
+
+    // Transformar los datos al formato esperado por el frontend
+    const transformedTour = {
+      id: data.idTour?.toString() || tourId,
+      title: data.name || data.title || "",
+      description: data.description || "",
+      events: data.events || data.eventIds || [],
+    };
+
+    console.log(`Transformed tour:`, transformedTour);
+
+    return {
+      success: true,
+      message: "Tour obtenido exitosamente",
+      tour: transformedTour,
+    };
+  } catch (error) {
+    console.error("Error getting tour:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Error al obtener el tour",
+    };
+  }
+}
+
+export async function getAvailableEvents() {
+  "use server";
+
+  try {
+    const session = await getCustomServerSession();
+    if (!session) {
+      return {
+        success: false,
+        message: "No tienes permisos para ver eventos",
+      };
+    }
+
+    console.log("Fetching available events...");
+
+    const response = await fetch(`${API_URL}/api/events`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Error fetching events:", errorData);
+      throw new Error(
+        errorData.message || `Error ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    console.log(`Events data received:`, data);
+
+    return {
+      success: true,
+      message: "Eventos obtenidos exitosamente",
+      events: data || [],
+    };
+  } catch (error) {
+    console.error("Error getting events:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Error al obtener los eventos",
+      events: [],
     };
   }
 }

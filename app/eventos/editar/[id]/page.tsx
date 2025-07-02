@@ -10,7 +10,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/AuthContext";
 
 const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const hourRanges = ["6:00-9:00", "12:00-14:00", "14:00-17:00", "17:00-20:00"];
 const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 const dayMap: Record<string, number> = {
@@ -42,12 +41,13 @@ export default function EditarEventoPage() {
           Object.entries(dayMap).map(([k, v]) => [v, k])
         );
 
-        const groupedDays: Record<string, string[]> = {};
+        const groupedDays: Record<string, { startTime: string; endTime: string }[]> = {};
         data.eventTimes?.forEach((et: any) => {
           const dayName = daysMap[et.availabilityPattern.dayOfWeek];
-          const timeRange = `${et.availabilityPattern.startTime.slice(0, 5)}-${et.availabilityPattern.endTime.slice(0, 5)}`;
+          const start = et.availabilityPattern.startTime.slice(0, 5);
+          const end = et.availabilityPattern.endTime.slice(0, 5);
           if (!groupedDays[dayName]) groupedDays[dayName] = [];
-          groupedDays[dayName].push(timeRange);
+          groupedDays[dayName].push({ startTime: start, endTime: end });
         });
 
         const transformedForm = {
@@ -55,7 +55,10 @@ export default function EditarEventoPage() {
           price: data.price.toString(),
           availableSpots: data.availableSpots?.toString() || "",
           date: data.date || "",
-          days: Object.entries(groupedDays).map(([day, times]) => ({ day, times }))
+          days: Object.entries(groupedDays).map(([day, times]) => ({ day, times })),
+          image1: data.image1 || "",
+          image2: data.image2 || "",
+          image3: data.image3 || ""
         };
 
         setForm(transformedForm);
@@ -74,25 +77,31 @@ export default function EditarEventoPage() {
     setForm({ ...form, [name]: parsedValue });
   };
 
+  const handleTimeChange = (day: string, index: number, field: "startTime" | "endTime", value: string) => {
+    const updatedDays = form.days.map((d: any) => {
+      if (d.day === day) {
+        const updatedTimes = d.times.map((t: any, i: number) =>
+          i === index ? { ...t, [field]: value } : t
+        );
+        return { ...d, times: updatedTimes };
+      }
+      return d;
+    });
+    setForm({ ...form, days: updatedDays });
+  };
+
+  const addTimeRange = (day: string) => {
+    const updatedDays = form.days.map((d: any) =>
+      d.day === day ? { ...d, times: [...d.times, { startTime: "", endTime: "" }] } : d
+    );
+    setForm({ ...form, days: updatedDays });
+  };
+
   const toggleDay = (day: string) => {
     const exists = form.days?.find((d: any) => d.day === day);
     const updatedDays = exists
       ? form.days.filter((d: any) => d.day !== day)
-      : [...(form.days || []), { day, times: [] }];
-    setForm({ ...form, days: updatedDays });
-  };
-
-  const toggleHourRange = (day: string, time: string) => {
-    const updatedDays = form.days.map((d: any) =>
-      d.day === day
-        ? {
-            ...d,
-            times: d.times.includes(time)
-              ? d.times.filter((t: string) => t !== time)
-              : [...d.times, time],
-          }
-        : d
-    );
+      : [...(form.days || []), { day, times: [{ startTime: "", endTime: "" }] }];
     setForm({ ...form, days: updatedDays });
   };
 
@@ -100,9 +109,8 @@ export default function EditarEventoPage() {
     const timeSlots: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
     form.days.forEach((d: any) => {
       const dayNum = dayMap[d.day];
-      d.times.forEach((range: string) => {
-        const [startTime, endTime] = range.split("-");
-        timeSlots.push({ dayOfWeek: dayNum, startTime, endTime });
+      d.times.forEach((range: any) => {
+        timeSlots.push({ dayOfWeek: dayNum, startTime: range.startTime, endTime: range.endTime });
       });
     });
     return timeSlots;
@@ -119,13 +127,13 @@ export default function EditarEventoPage() {
 
     const payload = {
       name: form.name,
-      image1: form.image1,
       description: form.description,
-      price: Number(form.price),
-      date: form.date || null,
       city: form.city,
       address: form.address,
-      availableSpots: form.availableSpots ? Number(form.availableSpots) : null,
+      price: Number(form.price),
+      image1: form.image1,
+      image2: form.image2,
+      image3: form.image3,
       timeSlots: convertToTimeSlots(),
     };
 
@@ -139,7 +147,11 @@ export default function EditarEventoPage() {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error("Error al actualizar el evento");
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Respuesta del backend:", errorText);
+        throw new Error("Error al actualizar el evento");
+      }
 
       toast({
         title: "Evento actualizado",
@@ -178,8 +190,16 @@ export default function EditarEventoPage() {
               <Input name="name" value={form.name} onChange={handleChange} required maxLength={80} />
             </div>
             <div>
-              <label className="block font-medium mb-1 text-primary">URL de imagen</label>
+              <label className="block font-medium mb-1 text-primary">URL Imagen 1</label>
               <Input name="image1" value={form.image1} onChange={handleChange} type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL Imagen 2</label>
+              <Input name="image2" value={form.image2} onChange={handleChange} type="url" />
+            </div>
+            <div>
+              <label className="block font-medium mb-1 text-primary">URL Imagen 3</label>
+              <Input name="image3" value={form.image3} onChange={handleChange} type="url" />
             </div>
             <div>
               <label className="block font-medium mb-1 text-primary">Descripción *</label>
@@ -211,11 +231,11 @@ export default function EditarEventoPage() {
             </div>
             <div>
               <label className="block font-medium mb-1 text-primary">Días y horarios</label>
-              <div className="mt-2">
+              <div className="mt-2 space-y-4">
                 {weekDays.map((day) => {
                   const selectedDay = form.days?.find((d: any) => d.day === day);
                   return (
-                    <div key={day} className="flex flex-col mb-2">
+                    <div key={day} className="flex flex-col gap-2">
                       <label className="flex items-center gap-2 text-sm font-medium">
                         <input
                           type="checkbox"
@@ -225,17 +245,24 @@ export default function EditarEventoPage() {
                         {day}
                       </label>
                       {selectedDay && (
-                        <div className="ml-6 mt-1 flex flex-wrap gap-2 text-xs">
-                          {hourRanges.map((range) => (
-                            <label key={range} className="flex items-center gap-1">
-                              <input
-                                type="checkbox"
-                                checked={selectedDay.times.includes(range)}
-                                onChange={() => toggleHourRange(day, range)}
+                        <div className="ml-6 space-y-2">
+                          {selectedDay.times.map((range: any, idx: number) => (
+                            <div key={idx} className="flex gap-2">
+                              <Input
+                                type="time"
+                                value={range.startTime}
+                                onChange={(e) => handleTimeChange(day, idx, "startTime", e.target.value)}
                               />
-                              {range}
-                            </label>
+                              <Input
+                                type="time"
+                                value={range.endTime}
+                                onChange={(e) => handleTimeChange(day, idx, "endTime", e.target.value)}
+                              />
+                            </div>
                           ))}
+                          <Button type="button" onClick={() => addTimeRange(day)} size="sm">
+                            + Añadir rango
+                          </Button>
                         </div>
                       )}
                     </div>
