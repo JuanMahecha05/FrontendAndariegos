@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast'
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator'
 import { useMutation } from '@apollo/client';
 import { REGISTER_MUTATION } from '@/graphql/mutations/auth'
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 const registerSchema = z.object({
   name: z.string().min(3).max(50),
@@ -69,7 +70,7 @@ export function RegisterForm() {
     setIsLoading(true)
 
     try {
-      const res = await fetch("http://localhost:7080/api/auth/register", {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

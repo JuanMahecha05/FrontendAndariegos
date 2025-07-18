@@ -209,7 +209,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         // Enriquecer los eventos seleccionados del tour
         const selectedIds = (tourData.events || tourData.eventIds || []).map((event: any) => event.id || event);
         const enrichedSelectedEvents = selectedIds
-          .map((id: any) => transformedEvents.find(e => String(e.id) === String(id)))
+          .map((id: string | number) => transformedEvents.find((e: any) => String(e.id) === String(id)))
           .filter(Boolean);
 
         // Actualizar el estado del tour y del formulario

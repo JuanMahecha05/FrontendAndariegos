@@ -20,6 +20,8 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/AuthContext'
 
+const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+
 const loginSchema = z.object({
   identifier: z
     .string()
@@ -51,7 +53,7 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('http://localhost:7080/api/auth/login', {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
