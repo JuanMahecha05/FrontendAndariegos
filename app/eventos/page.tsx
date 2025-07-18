@@ -32,6 +32,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { getEventosAction, registerEventoAction } from './actions';
+import { reportEventAction } from './actions';
 
 const neonColors = ["neon-yellow", "neon-blue", "neon-red"];
 function getRandomNeonColor(exclude: string): string {
@@ -233,6 +234,12 @@ export default function EventosPage() {
     setShowConfirmDialog(true);
   };
 
+  const openReportDialog = (evento: any) => {
+    setSelectedEvento(evento);
+    setReportDescription("");
+    setShowReportDialog(true);
+  };
+
   const realizarAgendamiento = async () => {
     if (!selectedEvento || !user) return;
 
@@ -285,6 +292,31 @@ export default function EventosPage() {
       toast({
         title: "Error",
         description: "Error al agendar el evento.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReportSubmit = async () => {
+    if (!selectedEvento || !user) return;
+    try {
+      const result = await reportEventAction({
+        id_event: selectedEvento.id,
+        id_reporter: user.sub || user.username || user.email,
+        description: reportDescription,
+        state: "pending",
+      });
+      if (!result.success) throw new Error(result.error || "Error al crear el reporte");
+      toast({
+        title: "Reporte enviado",
+        description: "Gracias por tu reporte.",
+        variant: "default",
+      });
+      setShowReportDialog(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo enviar el reporte.",
         variant: "destructive",
       });
     }

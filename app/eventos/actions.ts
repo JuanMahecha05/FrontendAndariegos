@@ -1,7 +1,7 @@
 "use server";
 import { cookies } from "next/headers";
 
-const API_URL = "http://andariegos-api-gateway:8080/api";
+const API_URL = process.env.INTERNAL_API_GATEWAY_URL!;
 
 export async function getEventosAction() {
   try {
@@ -196,6 +196,38 @@ export async function getEventByIdAction(id: string) {
 
     const data = await response.json();
     return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Error inesperado" };
+  }
+} 
+
+export async function reportEventAction({
+  id_event,
+  id_reporter,
+  description,
+  state = "pending",
+}: {
+  id_event: number | string;
+  id_reporter: string;
+  description: string;
+  state?: string;
+}) {
+  try {
+    const response = await fetch(`${API_URL}/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id_event,
+        id_reporter,
+        description,
+        state,
+      }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { success: false, error: errorText || "Error al crear el reporte" };
+    }
+    return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Error inesperado" };
   }

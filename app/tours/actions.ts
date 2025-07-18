@@ -1,7 +1,7 @@
 "use server";
 import { cookies } from "next/headers";
 
-const API_URL = "http://andariegos-api-gateway:8080/api";
+const API_URL = process.env.INTERNAL_API_GATEWAY_URL!;
 
 export async function getToursAction() {
   try {
