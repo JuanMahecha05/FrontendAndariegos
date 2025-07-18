@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { getTourByIdAction } from "../actions";
 
 type EventType = {
   idEvent: number;
@@ -42,16 +43,17 @@ export default function TourDetailPage({ params }: Props) {
   const router = useRouter();
   const [tour, setTour] = useState<TourType | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchTour = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/tours/${id}`);
-        if (!res.ok) throw new Error("Error al cargar el tour");
-
-        const data = await res.json();
-        setTour(data);
+        const result = await getTourByIdAction(id);
+        if (result.success) {
+          setTour(result.data);
+        } else {
+          console.error("Error al obtener tour:", result.error);
+        }
       } catch (error) {
         console.error("Error al obtener tour:", error);
       } finally {

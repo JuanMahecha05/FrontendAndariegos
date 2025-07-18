@@ -8,9 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/AuthContext";
+import { getEventByIdAction, updateEventAction } from "@/app/eventos/actions";
 
 const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 const dayMap: Record<string, number> = {
   "Lunes": 1,
@@ -26,17 +26,19 @@ export default function EditarEventoPage() {
   const { id } = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { token } = useAuth();
+  const { user } = useAuth();
   const [form, setForm] = useState<any>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchEvento = async () => {
       try {
-        const response = await fetch(`${API_URL}/events/${id}`);
-        if (!response.ok) throw new Error("Evento no encontrado");
-        const data = await response.json();
+        const result = await getEventByIdAction(id as string);
+        if (!result.success) {
+          throw new Error(result.error || "Evento no encontrado");
+        }
 
+        const data = result.data;
         const daysMap: { [key: number]: string } = Object.fromEntries(
           Object.entries(dayMap).map(([k, v]) => [v, k])
         );
@@ -138,27 +140,21 @@ export default function EditarEventoPage() {
     };
 
     try {
-      const response = await fetch(`${API_URL}/events/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const result = await updateEventAction(id as string, payload);
+      if (result.success) {
+        toast({
+          title: "Evento actualizado",
+          description: "Los cambios se guardaron correctamente.",
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Respuesta del backend:", errorText);
-        throw new Error("Error al actualizar el evento");
+        setTimeout(() => router.push("/eventos-admin"), 1500);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "No se pudo actualizar el evento.",
+          variant: "destructive",
+        });
       }
-
-      toast({
-        title: "Evento actualizado",
-        description: "Los cambios se guardaron correctamente.",
-      });
-
-      setTimeout(() => router.push("/eventos-admin"), 1500);
     } catch (err) {
       toast({
         title: "Error",

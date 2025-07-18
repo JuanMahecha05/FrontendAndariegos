@@ -9,13 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Clock, MapPin, Users, Calendar, Loader2 } from "lucide-react"; // ← Loader2 incluido
+import { Clock, MapPin, Users, Calendar, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/AuthContext";
-
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+import { getEventosAction, getEventAttendeesAction } from "@/app/eventos/actions";
 
 type EventoReservado = {
   id: number;
@@ -30,30 +29,33 @@ type EventoReservado = {
 
 export default function EventosReservadosPage() {
   const [eventosReservados, setEventosReservados] = useState<EventoReservado[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // ← estado agregado
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
   const { user } = useAuth();
 
-  if (!user) return null;
-
   useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchReservasDelUsuario = async () => {
       try {
-        const eventosRes = await fetch(`${API_URL}/events`);
-        const eventos = await eventosRes.json();
+        const eventosResult = await getEventosAction();
+        if (!eventosResult.success) {
+          throw new Error(eventosResult.error || "Error al obtener eventos");
+        }
 
+        const eventos = eventosResult.data;
         const reservasUsuario: EventoReservado[] = [];
 
         for (const evento of eventos) {
-          const asistentesRes = await fetch(
-            `${API_URL}/events/registration/attendees/${evento.id}`
-          );
+          const asistentesResult = await getEventAttendeesAction(evento.id);
 
-          if (!asistentesRes.ok) continue;
+          if (!asistentesResult.success) continue;
 
-          const asistentes = await asistentesRes.json();
-
+          const asistentes = asistentesResult.data;
           const estaRegistrado = asistentes.find(
             (a: any) => a.userId === user.sub
           );
@@ -81,7 +83,7 @@ export default function EventosReservadosPage() {
           variant: "destructive",
         });
       } finally {
-        setIsLoading(false); // ← marcamos que terminó de cargar
+        setIsLoading(false);
       }
     };
 

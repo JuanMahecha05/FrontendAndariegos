@@ -26,8 +26,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
-
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+import { getEventosAction } from "@/app/eventos/actions";
+import { createTourAction } from "@/app/tours/actions";
 
 const formSchema = z.object({
   title: z.string().min(1, "El título es requerido"),
@@ -46,7 +46,7 @@ interface Evento {
 
 const CrearTourForm = () => {
   const router = useRouter();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -60,33 +60,25 @@ const CrearTourForm = () => {
     },
   });
 
-  // Cargar eventos desde el cliente
+  // Cargar eventos usando server action
   useEffect(() => {
     const fetchEventos = async () => {
       try {
-        const response = await fetch(`${API_URL}/events`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await response.json();
-
-        if (!Array.isArray(data)) {
-          throw new Error("Respuesta inesperada");
+        const result = await getEventosAction();
+        if (result.success) {
+          const parsed = result.data.map((evento: any) => ({
+            id: evento.id,
+            nombre: evento.name,
+            descripcion: evento.description,
+            ubicacion: evento.address,
+            precio: evento.price,
+            imagen: evento.image1,
+          }));
+          setEventos(parsed);
+        } else {
+          console.error("Error al cargar eventos:", result.error);
+          setError(true);
         }
-
-        const parsed = data.map((evento: any) => ({
-          id: evento.id,
-          nombre: evento.name,
-          descripcion: evento.description,
-          ubicacion: evento.address,
-          precio: evento.price,
-          imagen: evento.image1,
-        }));
-
-        setEventos(parsed);
       } catch (err) {
         console.error("Error al cargar eventos:", err);
         setError(true);
@@ -96,24 +88,24 @@ const CrearTourForm = () => {
     };
 
     fetchEventos();
-  }, [token]);
+  }, []);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const response = await fetch(`${API_URL}/tours`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          idUser: user?.sub,
-          name: values.title,
-          description: values.description,
-          eventsIds: values.events,
-        }),
+      const result = await createTourAction({
+        idUser: user?.sub || "",
+        name: values.title,
+        description: values.description,
+        eventsIds: values.events,
       });
 
-      if (!response.ok) throw new Error("Error al crear tour");
+      console.log("[CrearTourForm] Resultado de createTourAction:", result);
 
-      router.push("/mis-tours");
+      if (result.success) {
+        router.push("/mis-tours");
+      } else {
+        console.error("Error al crear tour:", result.error);
+      }
     } catch (error) {
       console.error("Error al crear el tour:", error);
     }

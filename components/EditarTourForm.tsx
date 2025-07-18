@@ -30,8 +30,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useAuth } from "@/hooks/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+import { getTourByIdAction, updateTourAction } from "@/app/tours/actions";
+import { getEventosAction } from "@/app/eventos/actions";
 
 interface Horario {
   fecha: string;
@@ -146,7 +146,7 @@ interface EditarTourFormProps {
 export default function EditarTourForm({ tourId }: EditarTourFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [tour, setTour] = useState<Tour | null>(null);
   const [availableEvents, setAvailableEvents] = useState<Evento[]>([]);
   const [selectedEvents, setSelectedEvents] = useState<Evento[]>([]);
@@ -173,38 +173,26 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         setLoading(true);
         setError(null);
 
-        if (!token) {
+        if (!user) {
           router.push('/login');
           return;
         }
 
-        // Obtener el tour específico
-        const tourResponse = await fetch(`${API_URL}/tours/${tourId}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!tourResponse.ok) {
-          throw new Error(`Error al cargar el tour: ${tourResponse.status}`);
+        // Obtener el tour específico usando server action
+        const tourResult = await getTourByIdAction(tourId);
+        if (!tourResult.success) {
+          throw new Error(tourResult.error || "Error al cargar el tour");
         }
 
-        const tourData = await tourResponse.json();
+        const tourData = tourResult.data;
 
-        // Obtener todos los eventos disponibles
-        const eventsResponse = await fetch(`${API_URL}/events`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!eventsResponse.ok) {
-          throw new Error(`Error al cargar eventos: ${eventsResponse.status}`);
+        // Obtener todos los eventos disponibles usando server action
+        const eventsResult = await getEventosAction();
+        if (!eventsResult.success) {
+          throw new Error(eventsResult.error || "Error al cargar eventos");
         }
 
-        const eventsData = await eventsResponse.json();
+        const eventsData = eventsResult.data;
         const transformedEvents = Array.isArray(eventsData) ? eventsData.map((evento) => ({
           id: evento.id,
           nombre: evento.name,
@@ -221,7 +209,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         // Enriquecer los eventos seleccionados del tour
         const selectedIds = (tourData.events || tourData.eventIds || []).map((event: any) => event.id || event);
         const enrichedSelectedEvents = selectedIds
-          .map((id) => transformedEvents.find(e => String(e.id) === String(id)))
+          .map((id: any) => transformedEvents.find(e => String(e.id) === String(id)))
           .filter(Boolean);
 
         // Actualizar el estado del tour y del formulario
@@ -239,7 +227,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         form.reset({
           title: transformedTour.title,
           description: transformedTour.description,
-          events: enrichedSelectedEvents.map((e) => String(e.id)),
+          events: enrichedSelectedEvents.map((e: any) => String(e.id)),
         });
 
       } catch (err) {
@@ -251,20 +239,20 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
 
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tourId, token, router]);
+  }, [tourId, user, router]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: tour?.title || '',
       description: tour?.description || '',
-      events: tour?.events.map(event => event.id) || [],
+      events: tour?.events.map((event: any) => event.id) || [],
     },
   });
 
   useEffect(() => {
-    const newTotalPrice = selectedEvents.reduce((sum, evento) => sum + evento.precio, 0);
-    const newTotalDuration = selectedEvents.reduce((sum, evento) => sum + evento.duracion, 0);
+    const newTotalPrice = selectedEvents.reduce((sum: number, evento: any) => sum + evento.precio, 0);
+    const newTotalDuration = selectedEvents.reduce((sum: number, evento: any) => sum + evento.duracion, 0);
     
     setTotalPrice(newTotalPrice);
     setTotalDuration(newTotalDuration);
@@ -274,15 +262,15 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
     const { active, over } = event;
     
     if (over && active.id !== over.id) {
-      const oldIndex = selectedEvents.findIndex(e => e.id === active.id);
-      const newIndex = selectedEvents.findIndex(e => e.id === over.id);
+      const oldIndex = selectedEvents.findIndex((e: any) => e.id === active.id);
+      const newIndex = selectedEvents.findIndex((e: any) => e.id === over.id);
       
       const newEvents = [...selectedEvents];
       const [movedEvent] = newEvents.splice(oldIndex, 1);
       newEvents.splice(newIndex, 0, movedEvent);
       
       setSelectedEvents(newEvents);
-      form.setValue('events', newEvents.map(e => e.id));
+      form.setValue('events', newEvents.map((e: any) => e.id));
     }
   };
 
@@ -295,12 +283,12 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
     newEvents.splice(newIndex, 0, event);
     
     setSelectedEvents(newEvents);
-    form.setValue('events', newEvents.map(e => e.id));
+    form.setValue('events', newEvents.map((e: any) => e.id));
   };
 
-  const filteredEvents = availableEvents.filter(evento => {
+  const filteredEvents = availableEvents.filter((evento: any) => {
     const matchesSearch = evento.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDate = !searchDate || evento.horarios.some(h => h.fecha.includes(searchDate));
+    const matchesDate = !searchDate || evento.horarios.some((h: any) => h.fecha.includes(searchDate));
     return matchesSearch && matchesDate;
   });
 
@@ -322,8 +310,8 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
 
       // Validar que los eventos seleccionados existen
       const validEvents = values.events
-        .map((id) => availableEvents.find((e) => e.id === id))
-        .filter(Boolean);
+        .map((id: any) => availableEvents.find((e: any) => e.id === id))
+        .filter((evento: any) => Boolean(evento));
 
       if (validEvents.length === 0) {
         toast({
@@ -334,35 +322,31 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
         return;
       }
 
-      // Actualizar el tour usando la API
-      const response = await fetch(`${API_URL}/tours/${tourId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          idUser: user?.sub,
-          name: values.title,
-          description: values.description,
-          eventsIds: validEvents.filter((evento) => evento !== undefined).map((evento) => evento.id)
-        })
+      // Actualizar el tour usando server action
+      const result = await updateTourAction(tourId, {
+        idUser: user?.sub || "",
+        name: values.title,
+        description: values.description,
+        eventsIds: validEvents.filter((evento: any) => evento !== undefined).map((evento: any) => evento.id)
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Error al actualizar el tour");
+      if (result.success) {
+        toast({
+          title: "¡Éxito!",
+          description: "Tour actualizado correctamente",
+        });
+
+        // Redirigir después de un breve delay para que el usuario vea la notificación
+        setTimeout(() => {
+          router.push('/tours');
+        }, 1500);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Error al actualizar el tour",
+          variant: "destructive",
+        });
       }
-
-      toast({
-        title: "¡Éxito!",
-        description: "Tour actualizado correctamente",
-      });
-
-      // Redirigir después de un breve delay para que el usuario vea la notificación
-      setTimeout(() => {
-        router.push('/tours');
-      }, 1500);
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({
@@ -486,7 +470,7 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {paginatedEvents.map((evento) => (
+                    {paginatedEvents.map((evento: any) => (
                       <FormField
                         key={evento.id}
                         control={form.control}
@@ -505,10 +489,10 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
                                     if (checked) {
                                       updatedEvents = [...form.getValues("events"), evento.id];
                                     } else {
-                                      updatedEvents = form.getValues("events").filter((id) => id !== evento.id);
+                                      updatedEvents = form.getValues("events").filter((id: any) => id !== evento.id);
                                     }
                                     form.setValue("events", updatedEvents, { shouldValidate: true });
-                                    setSelectedEvents(updatedEvents.map(id => availableEvents.find(e => e.id === id)).filter(Boolean) as Evento[]);
+                                    setSelectedEvents(updatedEvents.map((id: any) => availableEvents.find((e: any) => e.id === id)).filter(Boolean) as Evento[]);
                                   }}
                                 />
                               </FormControl>
@@ -576,18 +560,18 @@ export default function EditarTourForm({ tourId }: EditarTourFormProps) {
                       onDragEnd={handleDragEnd}
                     >
                       <SortableContext
-                        items={selectedEvents.map(e => e.id)}
+                        items={selectedEvents.map((e: any) => e.id)}
                         strategy={verticalListSortingStrategy}
                       >
-                        {selectedEvents.map((evento, index) => (
+                        {selectedEvents.map((evento: any, index: number) => (
                           <SortableEvent
                             key={evento.id}
                             id={evento.id}
                             evento={evento}
                             onRemove={() => {
-                              const newEvents = selectedEvents.filter(e => e.id !== evento.id);
+                              const newEvents = selectedEvents.filter((e: any) => e.id !== evento.id);
                               setSelectedEvents(newEvents);
-                              form.setValue('events', newEvents.map(e => e.id));
+                              form.setValue('events', newEvents.map((e: any) => e.id));
                             }}
                             onMoveUp={() => moveEvent(index, 'up')}
                             onMoveDown={() => moveEvent(index, 'down')}

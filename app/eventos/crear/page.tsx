@@ -7,8 +7,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/AuthContext";
+import { createEventAction } from "./actions";
+import { FormEvent, ChangeEvent } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+interface DaySlot {
+  day: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface FormState {
+  name: string;
+  image1: string;
+  image2: string;
+  image3: string;
+  description: string;
+  price: string;
+  date: string;
+  days: DaySlot[];
+  city: string;
+  address: string;
+  availableSpots: string;
+}
+
+// API_URL ya no se usa aquí, se maneja en server actions
 
 const MALICIOUS_DOMAINS = ["porn", "sex", "xxx", "redtube", "xvideos", "xnxx", "hentai", "youporn", "brazzers", "camgirl", "cam4", "chaturbate", "xhamster", "spankbang", "tnaflix", "fapdu", "erotic", "escort", "bet365", "casino", "phishing", "malware", "virus"];
 
@@ -25,7 +47,7 @@ export default function CrearEventoPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { token } = useAuth();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     name: "",
     image1: "",
     image2: "",
@@ -33,43 +55,43 @@ export default function CrearEventoPage() {
     description: "",
     price: "",
     date: "",
-    days: [] as { day: string; startTime: string; endTime: string }[],
+    days: [],
     city: "",
     address: "",
     availableSpots: "",
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string>("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    const parsedValue = type === "number" ? (value === "" ? "" : Number(value)) : value;
+    const parsedValue = type === "number" ? (value === "" ? "" : value) : value;
     setForm({ ...form, [name]: parsedValue });
   };
 
   const toggleDay = (day: string) => {
-    setForm(prev => {
-      const exists = prev.days.find(d => d.day === day);
+    setForm((prev: FormState) => {
+      const exists = prev.days.find((d: DaySlot) => d.day === day);
       const updated = exists
-        ? prev.days.filter(d => d.day !== day)
+        ? prev.days.filter((d: DaySlot) => d.day !== day)
         : [...prev.days, { day, startTime: "", endTime: "" }];
       return { ...prev, days: updated };
     });
   };
 
   const updateDayTime = (day: string, field: "startTime" | "endTime", value: string) => {
-    setForm(prev => ({
+    setForm((prev: FormState) => ({
       ...prev,
-      days: prev.days.map(d => d.day === day ? { ...d, [field]: value } : d)
+      days: prev.days.map((d: DaySlot) => d.day === day ? { ...d, [field]: value } : d)
     }));
   };
 
-  const convertToTimeSlots = () => {
+  const convertToTimeSlots = (): { dayOfWeek: number; startTime: string; endTime: string }[] => {
     const dayMap: Record<string, number> = {
       Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4, Viernes: 5,
       Sábado: 6, Domingo: 7
     };
     const slots: { dayOfWeek: number; startTime: string; endTime: string }[] = [];
-    form.days.forEach(d => {
+    form.days.forEach((d: DaySlot) => {
       const dayNum = dayMap[d.day];
       if (d.startTime && d.endTime) {
         slots.push({ dayOfWeek: dayNum, startTime: d.startTime, endTime: d.endTime });
@@ -78,7 +100,7 @@ export default function CrearEventoPage() {
     return slots;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -103,7 +125,6 @@ export default function CrearEventoPage() {
       description: form.description,
       price: Number(form.price),
       date: form.date || null,
-      days: [],
       city: form.city,
       address: form.address,
       availableSpots: form.availableSpots ? Number(form.availableSpots) : null,
@@ -111,27 +132,20 @@ export default function CrearEventoPage() {
     };
 
     try {
-      const response = await fetch(`${API_URL}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Detalles del error:", errorText);
-        throw new Error(errorText || "Error al crear el evento");
+      const result = await createEventAction(payload);
+      if (result.success) {
+        toast({
+          title: "¡Evento creado exitosamente!",
+          description: "El evento ha sido guardado en la base de datos.",
+        });
+        setTimeout(() => router.push("/eventos"), 1500);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Hubo un problema al guardar el evento.",
+          variant: "destructive",
+        });
       }
-
-      toast({
-        title: "¡Evento creado exitosamente!",
-        description: "El evento ha sido guardado en la base de datos.",
-      });
-
-      setTimeout(() => router.push("/eventos"), 1500);
     } catch (err: any) {
       toast({
         title: "Error",

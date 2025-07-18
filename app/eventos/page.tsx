@@ -21,6 +21,7 @@ import {
   Carousel, CarouselContent, CarouselItem,
   CarouselNext, CarouselPrevious
 } from "@/components/ui/carousel";
+import { getEventosAction, registerEventoAction } from './actions';
 
 const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
 function getRandomNeonColor(exclude: string): string {
@@ -29,7 +30,6 @@ function getRandomNeonColor(exclude: string): string {
 }
 
 const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
 function EventoCard({ evento, onAgendar }: { evento: any; onAgendar: (evento: any) => void }) {
   const [neon, setNeon] = React.useState('neon-yellow');
@@ -143,7 +143,7 @@ export default function EventosPage() {
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
   const [eventos, setEventos] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // ✅ NUEVO
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedEvento, setSelectedEvento] = useState<any | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -151,9 +151,17 @@ export default function EventosPage() {
   useEffect(() => {
     const fetchEventos = async () => {
       try {
-        const res = await fetch(`${API_URL}/events`);
-        const data = await res.json();
-        setEventos(data);
+        const result = await getEventosAction();
+        if (result.success) {
+          setEventos(result.data);
+        } else {
+          console.error("Error al cargar eventos:", result.error);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los eventos.",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         console.error("Error al cargar eventos", error);
         toast({
@@ -162,7 +170,7 @@ export default function EventosPage() {
           variant: "destructive",
         });
       } finally {
-        setIsLoading(false); // ✅ MARCAR COMO CARGADO
+        setIsLoading(false);
       }
     };
     fetchEventos();
@@ -192,32 +200,39 @@ export default function EventosPage() {
     const booking_time = now.toTimeString().split(" ")[0];
 
     try {
-      const response = await fetch(`${API_URL}/events/registration`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: selectedEvento.id,
-          userId: user.sub || user.username || user.email,
-          booking_time,
-          booking_date
-        })
-      });
+      const result = await registerEventoAction(
+        selectedEvento.id,
+        user.sub || user.username || user.email,
+        booking_date,
+        booking_time
+      );
 
-      if (!response.ok) throw new Error("Error al agendar");
+      if (result.success) {
+        // Guardar en localStorage
+        const nuevosEventosReservados = [...eventosReservados, {
+          id: selectedEvento.id,
+          name: selectedEvento.name,
+          booking_date,
+          booking_time
+        }];
+        localStorage.setItem('eventosReservados', JSON.stringify(nuevosEventosReservados));
 
-      eventosReservados.push(selectedEvento);
-      localStorage.setItem('eventosReservados', JSON.stringify(eventosReservados));
-
-      setShowSuccessDialog(true);
+        setShowConfirmDialog(false);
+        setShowSuccessDialog(true);
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Error al agendar el evento.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error("Error al agendar evento:", error);
+      console.error("Error al agendar:", error);
       toast({
         title: "Error",
-        description: "No se pudo realizar la reserva.",
-        variant: "destructive"
+        description: "Error al agendar el evento.",
+        variant: "destructive",
       });
-    } finally {
-      setShowConfirmDialog(false);
     }
   };
 

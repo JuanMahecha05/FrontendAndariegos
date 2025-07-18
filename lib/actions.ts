@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation'
 import { decryptToken, isValidJWT } from './utils'
 import { getCustomServerSession } from './server-utils'
 
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+const API_URL = "http://andariegos-api-gateway:8080/api";
 
 export async function login(formData: FormData) {
   const identifier = formData.get('identifier') as string

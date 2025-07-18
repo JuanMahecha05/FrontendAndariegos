@@ -21,6 +21,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { getToursAction, deleteTourAction } from './actions';
 
 const neonColors = ['neon-yellow', 'neon-blue', 'neon-red'];
 function getRandomNeonColor(exclude: string): string {
@@ -31,15 +32,17 @@ function getRandomNeonColor(exclude: string): string {
 export default function ToursPage() {
   const [tours, setTours] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, token } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchTours = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/tours`);
-        if (!res.ok) throw new Error("No se pudieron cargar los tours");
-        const data = await res.json();
-        setTours(data);
+        const result = await getToursAction();
+        if (result.success) {
+          setTours(result.data);
+        } else {
+          console.error("Error cargando tours:", result.error);
+        }
       } catch (err) {
         console.error("Error cargando tours:", err);
       } finally {
@@ -52,15 +55,12 @@ export default function ToursPage() {
 
   const handleDeleteTour = async (idTour: number) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/tours/${idTour}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      if (!res.ok) throw new Error("Error al eliminar tour");
-
-      setTours(prev => prev.filter(tour => tour.idTour !== idTour));
+      const result = await deleteTourAction(idTour);
+      if (result.success) {
+        setTours(prev => prev.filter(tour => tour.idTour !== idTour));
+      } else {
+        console.error("Error eliminando tour:", result.error);
+      }
     } catch (error) {
       console.error("Error eliminando tour:", error);
     }

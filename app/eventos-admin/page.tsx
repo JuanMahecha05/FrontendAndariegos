@@ -26,8 +26,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+import { getEventosWithAttendeesAction, deleteEventAction } from "@/app/eventos/actions";
 
 type Attendee = {
   id: number;
@@ -70,7 +69,7 @@ function formatTimeSlot(availability: Availability) {
 }
 
 export default function EventosAdminPage() {
-  const { user, isAuthenticated, token } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -90,34 +89,16 @@ export default function EventosAdminPage() {
 
     const fetchEventos = async () => {
       try {
-        const res = await fetch(`${API_URL}/events`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) throw new Error("Error al cargar eventos");
-
-        const data = await res.json();
-
-        const eventosConInscritos = await Promise.all(
-          data.map(async (evento: Evento) => {
-            try {
-              const resInscritos = await fetch(`${API_URL}/events/registration/attendees/${evento.id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (resInscritos.ok) {
-                const inscritos = await resInscritos.json();
-                return { ...evento, inscritos };
-              }
-            } catch (err) {
-              console.error(`Error cargando inscritos para el evento ${evento.id}`);
-            }
-            return { ...evento, inscritos: [] };
-          })
-        );
-
-        setEventos(eventosConInscritos);
+        const result = await getEventosWithAttendeesAction();
+        if (result.success && result.data) {
+          setEventos(result.data);
+        } else {
+          toast({
+            title: "Error al cargar eventos",
+            description: result.error || "Intenta nuevamente más tarde.",
+            variant: "destructive",
+          });
+        }
       } catch (err) {
         toast({
           title: "Error al cargar eventos",
@@ -130,7 +111,7 @@ export default function EventosAdminPage() {
     };
 
     fetchEventos();
-  }, [isAuthenticated, user, token, router, toast]);
+  }, [isAuthenticated, user, router, toast]);
 
   const handleEdit = (eventId: number) => {
     router.push(`/eventos/editar/${eventId}`);
@@ -140,20 +121,20 @@ export default function EventosAdminPage() {
     if (!window.confirm("¿Estás seguro de que deseas eliminar este evento?")) return;
 
     try {
-      const res = await fetch(`${API_URL}/events/${eventId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error("No se pudo eliminar el evento");
-
-      setEventos(eventos.filter((evento) => evento.id !== eventId));
-      toast({
-        title: "Evento eliminado",
-        description: "El evento ha sido eliminado exitosamente.",
-      });
+      const result = await deleteEventAction(eventId);
+      if (result.success) {
+        setEventos(eventos.filter((evento) => evento.id !== eventId));
+        toast({
+          title: "Evento eliminado",
+          description: "El evento ha sido eliminado exitosamente.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "No se pudo eliminar el evento.",
+          variant: "destructive",
+        });
+      }
     } catch (err) {
       toast({
         title: "Error",
